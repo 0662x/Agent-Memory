@@ -1,0 +1,12 @@
+name: life_memory
+version: 0.1.0
+description: "Local layered life memory tools for Hermes. Stores, recalls, reviews, and maintains user-authorized life memories separately from technical project memory."
+author: local
+kind: standalone
+provides_tools:
+  - life_memory_store
+  - life_memory_recall
+  - life_memory_feedback
+  - life_memory_forget
+  - life_memory_reflect
+  - life_memory_export_review
