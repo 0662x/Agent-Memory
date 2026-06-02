@@ -21,6 +21,7 @@ plugins/life_memory/
 ├── recall.py
 ├── reflection.py
 ├── repository.py
+├── routing.py
 ├── safety.py
 ├── session_adapter.py
 └── time_utils.py
@@ -39,7 +40,7 @@ Latest validation:
 ```text
 2026-06-02 Australia/Sydney
 uv run python -m pytest
-71 passed in 0.34s
+89 passed in 0.40s
 Python 3.11.15, pytest 9.0.3
 ```
 
@@ -47,9 +48,11 @@ Covered test groups:
 
 - contract tests for all six tool schemas;
 - integration tests that call handlers directly with a temporary `HERMES_HOME`;
-- realistic transcript integration tests for bilingual/noisy sessions, do-not-store boundaries, correction, cross-session recall, and pattern promotion;
+- realistic transcript integration tests for bilingual/noisy sessions, Chinese daily-life store/recall, do-not-store boundaries, correction, cross-session recall, and pattern promotion;
 - unit tests for classification, safety, repository, recall, session adapter, and reflection;
+- CJK n-gram recall tests for Chinese natural-language questions;
 - read-only Markdown export tests;
+- runtime routing tests for L4 life memory, L2 technical memory, L3 profile memory, and temporary/no-save declines;
 - 10,000-row store/recall performance smoke coverage with bounded recall results.
 
 ## 3. Development Mount
@@ -107,6 +110,7 @@ Expected behavior:
 - kind is `standalone`;
 - error is empty after enabled;
 - registered tools include `life_memory_store`, `life_memory_recall`, `life_memory_feedback`, `life_memory_forget`, `life_memory_reflect`, and `life_memory_export_review`.
+- when Hermes supports hooks, the plugin also registers `pre_llm_call` to add layered memory routing guidance.
 
 ## 6. Manual Prototype Checks
 
@@ -124,6 +128,41 @@ Expected result:
 - `primary_category` is `personal_preference`, with routine/night/work-style tags;
 - status starts as `young`;
 - trace is recorded.
+
+### Default Hermes memory routing
+
+Run normal Hermes without restricting toolsets:
+
+```bash
+hermes -z
+```
+
+Ask it to remember a unique life preference marker:
+
+```text
+请记住：我晚饭后喜欢喝一款路由测试饮品，名字是 ROUTE_MARKER。请按默认记忆规则处理，最后只回复：已处理。
+```
+
+Expected result:
+
+- the marker appears in `/Users/oliver/.hermes/life_memory.db`;
+- the marker does not appear in `/Users/oliver/.hermes/memory_store.db`;
+- the marker does not appear in `/Users/oliver/.hermes/memories/MEMORY.md` or `/Users/oliver/.hermes/memories/USER.md`.
+
+Technical/project markers should still remain in Hermes native memory, and stable
+profile instructions such as response style should still route to the native
+user-profile path.
+
+Latest validation on 2026-06-02 Australia/Sydney:
+
+```text
+hermes -z "<natural Chinese weekend-running drink preference>"
+life_memory.db: 1 routed L4 row created
+memory_store.db: 0 matching native facts
+MEMORY.md / USER.md: 0 matching lines
+life_memory_recall: natural "weekend exercise drink" query returned 1 result
+cleanup: life_memory_forget redacted the test row
+```
 
 ### Mixed-language session extraction
 
@@ -283,3 +322,4 @@ Tests use a temporary `HERMES_HOME` and must not write to the real Hermes profil
 - Daily reflection is report-only by design and must not be used as a durable fact source.
 - Markdown review export is one-way; correction or forget requests must still go through tool calls.
 - Realistic tests now cover more conversational noise, but they are still hand-written fixtures rather than production telemetry.
+- Runtime routing patches Hermes imports in-process without editing Hermes source. Rerun the routing tests and one `hermes -z` black-box route check after Hermes upgrades.

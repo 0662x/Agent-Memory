@@ -72,6 +72,48 @@ def test_realistic_boundary_cases_do_not_create_durable_memories(
             assert after["count"] == before["count"], case["case_id"]
 
 
+def test_realistic_daily_usage_store_and_recall_natural_language(registered_tools) -> None:
+    store = registered_tools["life_memory_store"]["handler"]
+    recall = registered_tools["life_memory_recall"]["handler"]
+    scenarios = [
+        {
+            "content": "这个可以长期记一下：我晚饭后通常会泡一杯茉莉茶，睡前就不喝咖啡了。",
+            "query": "我晚饭后一般喝什么放松？",
+            "must_include": "茉莉茶",
+        },
+        {
+            "content": (
+                "Remember that on most Wednesdays I pick up my niece Ava after ballet, "
+                "so I avoid late meetings then."
+            ),
+            "query": "Wednesday ballet pickup",
+            "must_include": "Ava",
+        },
+        {
+            "content": "以后可以记一下，我周六下午一般去河边慢跑，跑完会买无糖豆浆。",
+            "query": "周末运动后的饮品是什么？",
+            "must_include": "无糖豆浆",
+        },
+    ]
+
+    for scenario in scenarios:
+        stored = json.loads(
+            store(
+                {
+                    "content": scenario["content"],
+                    "explicit_user_request": True,
+                    "source": "realistic_daily_test",
+                }
+            )
+        )
+        recalled = json.loads(recall({"query": scenario["query"], "limit": 5}))
+        recalled_text = "\n".join(item["content"] for item in recalled.get("results", []))
+
+        assert stored["ok"] is True, scenario["content"]
+        assert recalled["outcome"] == "success", scenario["query"]
+        assert scenario["must_include"] in recalled_text, scenario["query"]
+
+
 def test_realistic_cross_session_correction_excludes_superseded_memory(
     registered_tools,
 ) -> None:

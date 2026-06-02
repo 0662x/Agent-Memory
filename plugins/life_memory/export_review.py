@@ -168,8 +168,19 @@ def _display_content(memory: dict[str, Any], sensitive_mode: str) -> str:
             return "[Sensitive memory omitted from this export.]"
         if sensitivity == Sensitivity.RESTRICTED.value:
             return "[Restricted memory exported as metadata only.]"
-        return _safe_text(str(memory.get("content") or "[Sensitive memory stored as summary only.]"))
+        return _safe_text(_sensitive_export_summary(memory))
     return _safe_text(str(memory.get("content") or ""))
+
+
+def _sensitive_export_summary(memory: dict[str, Any]) -> str:
+    category = str(memory.get("primary_category") or "life memory")
+    tags = ", ".join(str(tag) for tag in memory.get("tags") or [])
+    suffix = f" Tags: {tags}." if tags else ""
+    return (
+        f"[Sensitive {category} memory exported as summary only. "
+        "Raw content is hidden from Markdown review by default."
+        f"{suffix}]"
+    )
 
 
 def _render_change_requests() -> str:

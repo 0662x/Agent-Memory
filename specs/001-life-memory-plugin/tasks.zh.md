@@ -85,7 +85,7 @@
 
 - [x] T025 [US2] 在 `plugins/life_memory/repository.py` 中实现创建 memory、evidence、status metadata、promotion metadata、validity window 和 declined-store trace 的 repository methods
 - [x] T026 [US2] 在 `plugins/life_memory/__init__.py` 中实现 durable `life_memory_store` 流程，包括 classification、safety gates、duplicate precheck、trace writes 和 JSON output
-- [x] T027 [US2] 在 `plugins/life_memory/safety.py` 中实现 `needs_confirmation`、summary-first sensitive handling 和 injection-risk rejection decisions
+- [x] T027 [US2] 在 `plugins/life_memory/safety.py` 中实现 `needs_confirmation`、confirmation-first sensitive storage handling 和 injection-risk rejection decisions
 - [x] T028 [US2] 在 `plugins/life_memory/__init__.py` 中实现 `major_life_fact` 快速晋升和 `recent_state` 14 天 TTL assignment
 
 **Checkpoint**: 符合条件的生活记忆可以保存并在 SQLite 中检查；不安全、技术类、未授权敏感候选不会被 durable store。
@@ -199,6 +199,18 @@
 
 ---
 
+## Phase 10: Runtime Memory Routing（运行时记忆路由）
+
+**Purpose**: 不修改 Hermes core，通过用户插件把默认记忆写入按 L2/L3/L4 分层路由。
+
+- [x] T065 在 `plugins/life_memory/routing.py` 中实现 memory route decision，复用 classification 将 L4 生活记忆路由到 `life_memory_store`，将 L2 技术/项目记忆路由到原生 `memory`，将 L3 用户画像路由到原生 `USER.md`
+- [x] T066 在 `plugins/life_memory/routing.py` 和 `plugins/life_memory/__init__.py` 中安装软提示：patch 原生 `memory`/holographic schema 描述，并注册 `pre_llm_call` 分层路由提醒
+- [x] T067 在 `plugins/life_memory/routing.py` 中包装 Hermes `tools.memory_tool.memory_tool()`，使误用原生 `memory` 保存 L4 时自动转交 `life_memory_store`
+- [x] T068 在 `plugins/life_memory/routing.py` 中过滤 `MemoryManager.on_memory_write` mirror 和 holographic `auto_extract`，避免生活记忆双写入 `memory_store.db`
+- [x] T069 在 `tests/unit/test_routing.py` 和 `tests/unit/test_classification.py` 中覆盖生活、技术、用户画像、临时状态四类路由，并运行全量测试
+
+---
+
 ## Dependencies & Execution Order（依赖与执行顺序）
 
 ### Phase Dependencies
@@ -212,6 +224,7 @@
 - **Phase 7 US6**: 依赖 Phase 2 和 repository data；在 US2 产生真实 memories 后最容易验证。
 - **Phase 8 US5**: 依赖 US2/US3，也可利用 US4 的 conflict/supersede behavior。
 - **Phase 9 Polish**: 依赖已选择实现的用户故事。
+- **Phase 10 Runtime Routing**: 依赖 Phase 3/4 classification 和 store handler；保持不修改 Hermes core。
 
 ### User Story Dependency Graph
 
@@ -222,7 +235,8 @@ Foundation
               ├── US3 Recall
               │     └── US4 Feedback/Forget
               │           └── US5 Reflect
-              └── US6 Export Review
+              ├── US6 Export Review
+              └── Runtime Memory Routing
 ```
 
 ### MVP Scope
@@ -319,6 +333,7 @@ T052 tests/integration/test_plugin_handlers.py
 6. US6 export review。
 7. US5 reflection。
 8. Polish and full quickstart validation。
+9. Runtime memory routing for Hermes default memory writes。
 
 ### Notes
 

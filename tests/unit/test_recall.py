@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from plugins.life_memory.recall import filter_recall_candidates, rank_memories
+from plugins.life_memory.recall import filter_recall_candidates, rank_memories, tokenize
 
 
 def _memory(memory_id: str, content: str, **overrides):
@@ -40,6 +40,48 @@ def test_recall_scoring_orders_relevant_high_signal_memories() -> None:
     assert [item["memory_id"] for item in results] == ["mem_high"]
     assert results[0]["relevance_score"] > 0
     assert "matched" in results[0]["relevance_reason"].lower()
+
+
+def test_chinese_daily_question_matches_chinese_life_memory() -> None:
+    results = rank_memories(
+        "你记得我晚饭后一般喝什么放松吗？",
+        [
+            _memory("tea", "晚饭后喜欢喝茉莉茶。", tags=["food", "routine"]),
+            _memory("sport", "周六下午一般去河边慢跑。", tags=["exercise", "routine"]),
+        ],
+        limit=5,
+    )
+
+    assert results
+    assert results[0]["memory_id"] == "tea"
+    assert "晚饭" in results[0]["relevance_reason"] or "饭后" in results[0]["relevance_reason"]
+
+
+def test_chinese_semantic_daily_question_matches_related_routine_tags() -> None:
+    results = rank_memories(
+        "我周末运动后一般会买什么饮品？",
+        [
+            _memory(
+                "soy",
+                "周六下午慢跑完后，通常会买一杯「云杉豆浆」当作放松习惯。",
+                tags=["routine", "food", "health"],
+            ),
+            _memory("tea", "晚饭后喜欢喝茉莉茶。", tags=["food", "routine"]),
+        ],
+        limit=5,
+    )
+
+    assert results
+    assert results[0]["memory_id"] == "soy"
+
+
+def test_chinese_query_expansion_does_not_inject_answer_terms() -> None:
+    tokens = set(tokenize("我周末运动后一般会买什么饮品？"))
+
+    assert {"food", "drink", "health", "exercise", "weekend", "routine"}.issubset(tokens)
+    assert "豆浆" not in tokens
+    assert "慢跑" not in tokens
+    assert "茉莉茶" not in tokens
 
 
 def test_filtering_excludes_archived_deleted_expired_and_sensitive_by_default() -> None:

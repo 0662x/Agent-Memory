@@ -43,7 +43,7 @@ The user needs a layered system that can decide whether a candidate memory belon
 - The MVP will not modify Hermes core source code.
 - The MVP will not install or develop the plugin inside Hermes bundled `hermes-agent/plugins` directory.
 - The MVP will not treat `hermes-agent` as the PyCharm workspace folder for plugin installation; the workspace folder should be the parent Hermes home directory `.hermes`.
-- The MVP will not introduce a separate memory-router plugin.
+- The MVP will not introduce a separate memory-router plugin; runtime memory routing is implemented inside the `life_memory` plugin.
 - The MVP will not implement a complete Agent Memory OS; project memory, skill promotion, cross-tool sharing, and shared multi-agent memory are future scope.
 - The MVP will not treat daily reports / daily memory as a fact source or let them change `promotion_score`; first-version daily reports are report-only audit artifacts.
 - The MVP will not train a learned memory policy or let the model autonomously decide all long-term memory governance actions; the prototype favors inspectable rules, explicit user actions, and lightweight reflection.
@@ -330,7 +330,7 @@ The following should not be stored by default: trivial one-off messages, tempora
 - Abstract experience memory starts with explicit reflection, repeated-evidence rules, and low-risk automatic promotion when `apply=true`; fully autonomous high-risk reflection is future scope.
 - Life-memory retrieval is exposed through recall behavior for the MVP; always-on pre-response injection can be evaluated later.
 - Memory inspection is handled through recall results with identifiers, feedback and forget actions, and read-only `life_memory_export_review` Markdown export for the MVP.
-- Technical-memory routing is rule-based classification for the MVP; a separate memory-router plugin is future scope.
+- Technical-memory routing is rule-based classification for the MVP and is implemented as internal runtime routing in the `life_memory` plugin; it does not require a separate memory-router plugin or Hermes core changes.
 - The MVP does not require a vector database or graph database; structured SQLite, full-text/keyword search, and lightweight relevance ranking are enough for the first prototype.
 - `pattern_candidate` enters the life-memory MVP instead of the technical `skill_candidate`; real skill promotion remains future work for Hermes technical memory or another plugin.
 - Prototype evaluation uses a small hand-written test set rather than directly replicating LongMemEval or LoCoMo, while still covering the long-term memory ability categories they emphasize.

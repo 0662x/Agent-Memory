@@ -93,6 +93,29 @@ def test_store_sensitive_content_returns_confirmation_without_write(registered_t
     assert count["count"] == 0
 
 
+def test_store_explicit_precise_address_marks_sensitive_without_losing_address(
+    registered_tools,
+    hermes_home: Path,
+) -> None:
+    result = json.loads(
+        registered_tools["life_memory_store"]["handler"](
+            {
+                "content": "Remember that my home address is 70 Example St, Ashfield.",
+                "explicit_user_request": True,
+            }
+        )
+    )
+
+    assert result["ok"] is True
+    assert result["sensitivity"] == "sensitive"
+
+    repo = LifeMemoryRepository(hermes_home=hermes_home)
+    memory = repo.fetch_one("SELECT * FROM life_memories WHERE memory_id = ?", (result["memory_id"],))
+    assert memory is not None
+    assert memory["sensitivity"] == "sensitive"
+    assert "70 Example St" in memory["content"]
+
+
 def test_store_major_life_fact_fast_promotes_to_active(registered_tools, hermes_home: Path) -> None:
     result = json.loads(
         registered_tools["life_memory_store"]["handler"](

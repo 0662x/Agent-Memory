@@ -10,3 +10,5 @@ provides_tools:
   - life_memory_forget
   - life_memory_reflect
   - life_memory_export_review
+provides_hooks:
+  - pre_llm_call

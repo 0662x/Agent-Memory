@@ -43,7 +43,7 @@ Hermes 已经有多种记忆机制，但技术项目记忆、生活记忆、用�
 - MVP 不修改 Hermes core 源码。
 - MVP 不把插件安装或开发在 Hermes bundled `hermes-agent/plugins` 目录里。
 - MVP 不把 `hermes-agent` 当作 PyCharm 中用于插件安装的 workspace folder；workspace folder 应该是上层 Hermes home 目录 `.hermes`。
-- MVP 不引入单独的 memory-router plugin。
+- MVP 不引入单独的 memory-router plugin；运行时记忆路由作为 `life_memory` 插件内部能力实现。
 - MVP 不实现完整 Agent Memory OS；project memory、skill promotion、跨工具共享和多 agent 共享记忆都属于未来范围。
 - MVP 不把 daily report / daily memory 当作事实源，也不让它改变 `promotion_score`；第一版 daily report 只作为 report-only audit artifact。
 - MVP 不训练 learned memory policy，也不让模型自动决定所有长期记忆治理动作；原型阶段优先使用可检查的规则、显式用户操作和轻量 reflection。
@@ -330,7 +330,7 @@ MVP 使用以下生命周期状态，而不是一开始实现完整分代 Memory
 - Abstract experience memory 从显式 reflection、重复证据规则和 `apply=true` 的低风险自动晋升开始；完全 autonomous high-risk reflection 是未来范围。
 - MVP 中 life-memory retrieval 通过 recall 行为暴露；是否在每次回答前自动注入记忆留到后续评估。
 - MVP 中 memory inspection 通过带 identifiers 的 recall results、feedback/forget actions，以及只读 `life_memory_export_review` Markdown 导出处理。
-- MVP 中 technical-memory routing 采用 rule-based classification；单独的 memory-router plugin 是未来范围。
+- MVP 中 technical-memory routing 采用 rule-based classification，并通过 `life_memory` 插件内部 runtime routing 实现；不单独引入 memory-router plugin，也不修改 Hermes core。
 - MVP 不引入向量数据库或图数据库作为硬依赖；结构化 SQLite、全文/关键词检索和轻量相关性排序足够用于第一轮原型验证。
 - `pattern_candidate` 替代技术向的 `skill_candidate` 进入 life-memory MVP；真正 skill promotion 留给 Hermes 技术记忆或未来插件。
 - 原型评估以小型手写测试集为主，不追求直接复刻 LongMemEval/LoCoMo，但覆盖它们强调的长期记忆能力类别。

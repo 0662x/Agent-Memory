@@ -103,6 +103,42 @@ def test_mixed_language_preference_is_life_memory() -> None:
     assert {"routine", "night", "morning", "work_style"}.issubset(set(decision.tags))
 
 
+def test_compact_chinese_food_preference_entry_is_life_memory() -> None:
+    decision = classify_candidate("晚饭后喜欢喝茉莉茶。")
+
+    assert decision.classification is MemoryClassification.LIFE_MEMORY
+    assert decision.primary_category == "personal_preference"
+    assert "food" in decision.tags
+
+
+def test_life_preference_with_test_marker_is_not_technical_memory() -> None:
+    decision = classify_candidate("晚饭后喜欢喝一款路由测试饮品，名字是 route_marker_123。")
+
+    assert decision.classification is MemoryClassification.LIFE_MEMORY
+    assert decision.primary_category == "personal_preference"
+
+
+def test_compact_chinese_weekend_routine_summary_is_life_memory() -> None:
+    decision = classify_candidate("周六下午慢跑完通常会买无糖豆浆。")
+
+    assert decision.classification is MemoryClassification.LIFE_MEMORY
+    assert decision.primary_category == "personal_pattern"
+    assert {"routine", "food", "health"}.issubset(set(decision.tags))
+
+
+def test_third_person_response_preference_is_user_profile() -> None:
+    decision = classify_candidate("User prefers concise responses with concrete next steps.")
+
+    assert decision.classification is MemoryClassification.USER_PROFILE
+
+
+def test_long_term_career_goal_is_user_profile_even_when_explicit() -> None:
+    decision = classify_candidate("记住：我希望以后做 agent 岗位。", explicit_user_request=True)
+
+    assert decision.classification is MemoryClassification.USER_PROFILE
+    assert decision.should_store is False
+
+
 def test_chinese_do_not_store_temporary_state_is_not_life_memory() -> None:
     decision = classify_candidate("不要长期记这个，我今天有点焦虑。")
 

@@ -7,6 +7,9 @@ from typing import Any, Iterable
 from .safety import detect_prompt_injection
 from .time_utils import clamp
 
+_ASCII_TOKEN_RE = re.compile(r"[a-z0-9_]+")
+_CJK_SEQUENCE_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]+")
+
 _STOPWORDS = {
     "the",
     "and",
@@ -22,13 +25,58 @@ _STOPWORDS = {
     "user",
 }
 
+_CJK_CONCEPT_EXPANSIONS = (
+    (
+        ("运动", "锻炼", "跑步", "慢跑", "健身", "羽毛球", "游泳", "散步"),
+        ("health", "exercise", "routine"),
+    ),
+    (
+        ("饮品", "喝", "豆浆", "咖啡", "茉莉茶", "奶茶"),
+        ("food", "drink"),
+    ),
+    (
+        ("周末", "周六", "周日", "星期六", "星期日"),
+        ("weekend", "routine"),
+    ),
+    (
+        ("晚饭", "晚餐", "饭后"),
+        ("food", "drink", "routine"),
+    ),
+)
+
 
 def tokenize(text: str) -> tuple[str, ...]:
-    return tuple(
+    value = (text or "").lower()
+    tokens = [
         token
-        for token in re.findall(r"[a-z0-9_]+", (text or "").lower())
+        for token in _ASCII_TOKEN_RE.findall(value)
         if len(token) > 2 and token not in _STOPWORDS
-    )
+    ]
+    for sequence in _CJK_SEQUENCE_RE.findall(text or ""):
+        tokens.extend(_cjk_ngrams(sequence))
+    tokens.extend(_cjk_semantic_expansions(text or ""))
+    return tuple(dict.fromkeys(tokens))
+
+
+def _cjk_ngrams(sequence: str) -> list[str]:
+    if len(sequence) < 2:
+        return []
+    grams: list[str] = []
+    if len(sequence) <= 8:
+        grams.append(sequence)
+    for size in (2, 3):
+        if len(sequence) < size:
+            continue
+        grams.extend(sequence[index : index + size] for index in range(len(sequence) - size + 1))
+    return grams
+
+
+def _cjk_semantic_expansions(text: str) -> list[str]:
+    expanded: list[str] = []
+    for triggers, terms in _CJK_CONCEPT_EXPANSIONS:
+        if any(trigger in text for trigger in triggers):
+            expanded.extend(terms)
+    return expanded
 
 
 def filter_recall_candidates(

@@ -437,6 +437,7 @@ Rules:
 - Export does not read Markdown edits.
 - Export does not update memory status, promotion scores, or traces except an export trace.
 - Sensitive/restricted memories are exported as summary-only or omitted; raw sensitive content is not exported.
+- Raw sensitive storage after explicit confirmation does not imply raw Markdown export.
 - `change-requests.md` is a template in MVP and is not processed as input.
 
 ## Model Intervention Policy
@@ -458,4 +459,5 @@ All model-assisted decisions must write trace records. Model output is advisory 
 - Memory text that contains commands, prompt injection, or policy-like instructions is returned only as quoted data or declined from storage.
 - Technical project facts must be declined from life-memory storage.
 - Sensitive content requires explicit long-term storage intent.
+- If the user explicitly confirms full sensitive storage, the record must still carry sensitive/restricted metadata and remain conservative in normal recall/export.
 - `deleted` memories must not appear in normal recall or reflection results.

@@ -12,6 +12,15 @@ _SENSITIVE_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("credential", re.compile(r"\b(?:password|passcode|api key|secret token|private key|recovery phrase)\b", re.I)),
     ("health", re.compile(r"\b(?:diagnosed|diagnosis|medication|therapy|therapist|psychiatrist|medical)\b", re.I)),
     ("legal", re.compile(r"\b(?:lawsuit|criminal record|restraining order|attorney|lawyer)\b", re.I)),
+    (
+        "precise_address",
+        re.compile(
+            r"\b\d{1,6}\s+[\w .'-]{2,60}\b(?:street|st|road|rd|avenue|ave|lane|ln|drive|dr|court|ct|place|pl|way|boulevard|blvd)\b|"
+            r"\b(?:home address|residential address)\b|"
+            r"(?:家庭住址|详细地址|门牌号|住址|我住在[^。！？\n]{0,40}\d{1,6}[^。！？\n]{0,40}(?:号|室|街|路|巷|弄|st|street|road|rd|ave|avenue))",
+            re.I,
+        ),
+    ),
 )
 
 _RESTRICTED_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
@@ -105,13 +114,17 @@ def evaluate_store_safety(content: str, *, explicit_user_request: bool = False) 
         )
 
     if sensitivity.sensitivity is not Sensitivity.NORMAL:
+        raw_storage_allowed = "precise_address" in sensitivity.reasons
         return StoreSafetyDecision(
             allow_store=True,
             outcome="success",
             sensitivity=sensitivity.sensitivity,
             injection_risk=injection.score,
-            reason="Explicit request allows storage, using summary-first sensitive handling.",
-            summary_only=True,
+            reason=(
+                "Explicit request allows sensitive storage; restricted content remains summary-only "
+                "and precise address content may be stored verbatim with sensitive metadata."
+            ),
+            summary_only=not raw_storage_allowed,
         )
 
     return StoreSafetyDecision(
@@ -128,6 +141,9 @@ def safe_content_for_storage(content: str, sensitivity: Sensitivity) -> str:
         return "[Restricted sensitive content omitted; summary-only storage required.]"
     if sensitivity is Sensitivity.SENSITIVE:
         lower = content.lower()
+        sensitivity_decision = detect_sensitivity(content)
+        if "precise_address" in sensitivity_decision.reasons:
+            return content
         if any(term in lower for term in ("therapy", "medical", "medication", "diagnosed", "diagnosis")):
             return "[Sensitive health information: therapy or medical schedule stored as summary only.]"
         if any(term in lower for term in ("bank", "credit card", "routing", "iban")):

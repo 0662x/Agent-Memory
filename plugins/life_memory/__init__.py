@@ -14,6 +14,7 @@ from .export_review import export_review_markdown
 from .models import FeedbackType, LifecycleStatus, MemoryClassification, TraceOperation
 from .reflection import normalize_reflection_mode, run_reflection
 from .repository import LifeMemoryRepository
+from .routing import install_memory_routing
 from .recall import rank_memories
 from .safety import evaluate_store_safety, safe_content_for_storage
 from .time_utils import clamp, content_hash, make_id, now_utc
@@ -840,3 +841,4 @@ def register(ctx: Any) -> None:
             handler=handler,
             description=schema.get("description", ""),
         )
+    install_memory_routing(ctx, life_memory_store)

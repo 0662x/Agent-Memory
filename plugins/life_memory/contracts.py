@@ -29,7 +29,12 @@ def _schema(name: str, description: str, parameters: dict[str, Any]) -> dict[str
 TOOL_SCHEMAS: dict[str, dict[str, Any]] = {
     "life_memory_store": _schema(
         "life_memory_store",
-        "Classify and store a user-authorized life memory candidate.",
+        (
+            "Classify and store an L4 life memory candidate: non-technical personal routines, "
+            "habits, food/lifestyle preferences, relationships, life events, and repeated "
+            "personal patterns. Do not use for technical/project memory or stable response-profile "
+            "instructions; those belong in Hermes built-in memory."
+        ),
         {
             "type": "object",
             "required": ["content"],
@@ -48,7 +53,7 @@ TOOL_SCHEMAS: dict[str, dict[str, Any]] = {
     ),
     "life_memory_recall": _schema(
         "life_memory_recall",
-        "Retrieve bounded, relevant life memories for a query.",
+        "Retrieve bounded, relevant L4 life memories for a query, excluding technical/project memory.",
         {
             "type": "object",
             "required": ["query"],

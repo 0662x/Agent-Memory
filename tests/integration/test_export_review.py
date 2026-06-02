@@ -29,12 +29,14 @@ def test_export_review_writes_expected_markdown_files_and_redacts_sensitive(
         category_hint="personal_pattern",
     )
     sensitive = _store(store, "Remember my medical therapy schedule.")
+    address = _store(store, "Remember that my home address is 70 Example St, Ashfield.")
 
     repo = LifeMemoryRepository(hermes_home=hermes_home)
     repo.update_memory_status(fact["memory_id"], status=LifecycleStatus.ACTIVE)
     repo.update_memory_status(pref["memory_id"], status=LifecycleStatus.REINFORCED)
     repo.update_memory_status(pattern["memory_id"], status=LifecycleStatus.PATTERN_CANDIDATE)
     repo.update_memory_status(sensitive["memory_id"], status=LifecycleStatus.ACTIVE)
+    repo.update_memory_status(address["memory_id"], status=LifecycleStatus.ACTIVE)
 
     result = json.loads(export({"include_archive": True, "include_sensitive": "summary_only"}))
 
@@ -61,6 +63,8 @@ def test_export_review_writes_expected_markdown_files_and_redacts_sensitive(
     assert "focused work late at night" in preferences
     assert "quiet morning routines" in patterns
     assert "medical therapy schedule" not in facts + preferences + patterns
+    assert "70 Example St" not in facts + preferences + patterns
+    assert "Ashfield" not in facts + preferences + patterns
     assert "Sensitive" in facts + preferences + patterns
 
 

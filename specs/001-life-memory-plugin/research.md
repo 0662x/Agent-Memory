@@ -94,7 +94,7 @@
 
 ## Decision: 敏感信息采用 confirmation-first
 
-**Rationale**: 敏感生活信息不能因为模型抽取或用户含糊表达就进入长期记忆。缺少明确长期授权时，`life_memory_store` 返回 `needs_confirmation`，不创建 durable memory，并询问是否长期保存以及保存摘要还是完整内容。默认倾向保存摘要，召回和导出都更保守。
+**Rationale**: 敏感生活信息不能因为模型抽取或用户含糊表达就进入长期记忆。缺少明确长期授权时，`life_memory_store` 返回 `needs_confirmation`，不创建 durable memory，并询问是否长期保存以及保存摘要还是完整内容。默认倾向保存摘要；如果用户明确选择完整保存，原文只作为敏感 SQLite 内容处理，召回和 Markdown 导出仍必须更保守。
 
 **Alternatives considered**:
 

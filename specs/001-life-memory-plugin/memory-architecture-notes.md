@@ -278,6 +278,8 @@ MVP 做：
 - `daily report` 在 MVP 中只做 report-only，不参与 `promotion_score`；
 - recall ranking 和 abstention；
 - feedback、forget、soft delete；
+- `life_memory` 插件内的 runtime memory routing，用规则分类把 L4 生活记忆导向
+  `life_memory_store`，把 L2 技术/项目记忆和 L3 用户画像留给 Hermes 原生记忆路径；
 - focused tests/evaluation cases。
 
 MVP 不做：
@@ -431,7 +433,8 @@ and explicit_user_request is not clearly true:
   write trace with redacted/hash input
 
 if user confirms long-term storage:
-  store summary-first, not raw detail by default
+  store summary-first by default; if the user explicitly chooses full storage,
+  sensitive life detail may be kept in SQLite with sensitive/restricted metadata
   set sensitivity = sensitive/restricted
   set action_boundary
   restrict normal recall and Markdown export
@@ -449,6 +452,10 @@ if user confirms long-term storage:
 ```text
 “这属于敏感生活信息。要长期保存吗？如果保存，我建议只保存摘要。”
 ```
+
+注意：完整保存和完整导出不是一回事。个人 agent 可以在用户明确确认后把某些
+生活敏感信息完整保存在 SQLite 中，但普通 recall 和 Markdown review/export
+仍默认隐藏或摘要化敏感原文，不能因为导出模式是 `summary_only` 就泄露完整内容。
 
 ### 4.1.1 生活记忆分类策略
 

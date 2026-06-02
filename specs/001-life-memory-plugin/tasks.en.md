@@ -83,7 +83,7 @@
 
 - [x] T025 [US2] Implement repository methods for creating memories, evidence, status metadata, promotion metadata, validity windows, and declined-store traces in `plugins/life_memory/repository.py`
 - [x] T026 [US2] Implement durable `life_memory_store` flow with classification, safety gates, duplicate precheck, trace writes, and JSON output in `plugins/life_memory/__init__.py`
-- [x] T027 [US2] Implement `needs_confirmation`, summary-first sensitive handling, and injection-risk rejection decisions in `plugins/life_memory/safety.py`
+- [x] T027 [US2] Implement `needs_confirmation`, confirmation-first sensitive storage handling, and injection-risk rejection decisions in `plugins/life_memory/safety.py`
 - [x] T028 [US2] Implement `major_life_fact` fast promotion and `recent_state` 14-day TTL assignment in `plugins/life_memory/__init__.py`
 
 **Checkpoint**: Eligible life memories can be stored and inspected in SQLite; unsafe, technical, and unauthorized sensitive candidates are not durably stored.
@@ -197,6 +197,18 @@
 
 ---
 
+## Phase 10: Runtime Memory Routing
+
+**Purpose**: Route default Hermes memory writes across L2/L3/L4 from the user plugin without modifying Hermes core.
+
+- [x] T065 Implement memory route decisions in `plugins/life_memory/routing.py`, reusing classification to route L4 life memories to `life_memory_store`, L2 technical/project memory to built-in `memory`, and L3 user profile memory to built-in `USER.md`
+- [x] T066 Install soft guidance in `plugins/life_memory/routing.py` and `plugins/life_memory/__init__.py`: patch built-in `memory`/holographic schema descriptions and register a `pre_llm_call` layered routing reminder
+- [x] T067 Wrap Hermes `tools.memory_tool.memory_tool()` in `plugins/life_memory/routing.py` so mistaken L4 writes through native `memory` are redirected to `life_memory_store`
+- [x] T068 Filter `MemoryManager.on_memory_write` mirroring and holographic `auto_extract` in `plugins/life_memory/routing.py` to prevent life memories from being double-written into `memory_store.db`
+- [x] T069 Cover life, technical, profile, and temporary routing in `tests/unit/test_routing.py` and `tests/unit/test_classification.py`, then run the full test suite
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
@@ -210,6 +222,7 @@
 - **Phase 7 US6**: Depends on Phase 2 and repository data; easiest after US2 creates realistic memories.
 - **Phase 8 US5**: Depends on US2/US3 and optionally US4 for conflict/supersede behavior.
 - **Phase 9 Polish**: Depends on the desired implemented stories.
+- **Phase 10 Runtime Routing**: Depends on Phase 3/4 classification and store handler; does not modify Hermes core.
 
 ### User Story Dependency Graph
 
@@ -220,7 +233,8 @@ Foundation
               ├── US3 Recall
               │     └── US4 Feedback/Forget
               │           └── US5 Reflect
-              └── US6 Export Review
+              ├── US6 Export Review
+              └── Runtime Memory Routing
 ```
 
 ### MVP Scope
@@ -317,6 +331,7 @@ T052 tests/integration/test_plugin_handlers.py
 6. US6 export review.
 7. US5 reflection.
 8. Polish and full quickstart validation.
+9. Runtime memory routing for Hermes default memory writes.
 
 ### Notes
 
