@@ -263,3 +263,109 @@ def test_deleted_memory_is_excluded_from_repository_search(hermes_home: Path) ->
     results = repo.search_memories(query="late night work")
 
     assert results == []
+
+
+def test_memory_embedding_schema_and_helpers(hermes_home: Path) -> None:
+    repo = LifeMemoryRepository(hermes_home=hermes_home)
+    repo.initialize()
+    _insert_memory(repo, "mem_embed", "The user buys coconut water after runs.")
+    memory = repo.get_memory("mem_embed")
+    assert memory is not None
+
+    repo.upsert_memory_embedding(
+        memory_id="mem_embed",
+        provider="fake-semantic",
+        model="fake-v1",
+        dimension=3,
+        content_hash_value=memory["content_hash"],
+        vector=[0.1, 0.2, 0.3],
+    )
+
+    fresh = repo.get_fresh_memory_embedding(
+        memory_id="mem_embed",
+        provider="fake-semantic",
+        model="fake-v1",
+        dimension=3,
+        content_hash_value=memory["content_hash"],
+    )
+    assert fresh is not None
+    assert fresh["vector"] == [0.1, 0.2, 0.3]
+
+    stale = repo.get_fresh_memory_embedding(
+        memory_id="mem_embed",
+        provider="fake-semantic",
+        model="fake-v1",
+        dimension=4,
+        content_hash_value=memory["content_hash"],
+    )
+    assert stale is None
+
+
+def test_searchable_embeddings_filter_stale_deleted_and_sensitive(hermes_home: Path) -> None:
+    repo = LifeMemoryRepository(hermes_home=hermes_home)
+    repo.initialize()
+    _insert_memory(repo, "normal", "The user buys coconut water after runs.")
+    _insert_memory(repo, "sensitive", "The user lives at 70 Example St.")
+    _insert_memory(repo, "deleted", "The user buys soy milk after runs.")
+    with repo.transaction() as conn:
+        conn.execute("UPDATE life_memories SET sensitivity = ? WHERE memory_id = ?", ("sensitive", "sensitive"))
+        conn.execute("UPDATE life_memories SET status = ? WHERE memory_id = ?", ("deleted", "deleted"))
+    for memory_id in ("normal", "sensitive", "deleted"):
+        memory = repo.get_memory(memory_id)
+        assert memory is not None
+        repo.upsert_memory_embedding(
+            memory_id=memory_id,
+            provider="fake-semantic",
+            model="fake-v1",
+            dimension=2,
+            content_hash_value=memory["content_hash"],
+            vector=[0.2, 0.8],
+        )
+
+    rows = repo.list_searchable_embeddings(provider="fake-semantic", model="fake-v1", dimension=2)
+
+    assert [row["memory_id"] for row in rows] == ["normal"]
+
+
+def test_embedding_index_summary_counts_fresh_stale_skipped_and_failed(hermes_home: Path) -> None:
+    repo = LifeMemoryRepository(hermes_home=hermes_home)
+    repo.initialize()
+    _insert_memory(repo, "fresh", "The user buys coconut water after runs.")
+    _insert_memory(repo, "skipped", "The user has a restricted fact.")
+    fresh = repo.get_memory("fresh")
+    skipped = repo.get_memory("skipped")
+    assert fresh is not None and skipped is not None
+    repo.upsert_memory_embedding(
+        memory_id="fresh",
+        provider="fake-semantic",
+        model="fake-v1",
+        dimension=2,
+        content_hash_value=fresh["content_hash"],
+        vector=[0.2, 0.8],
+    )
+    repo.upsert_memory_embedding(
+        memory_id="skipped",
+        provider="fake-semantic",
+        model="fake-v1",
+        dimension=2,
+        content_hash_value=skipped["content_hash"],
+        vector=[0.1, 0.9],
+        status="skipped",
+        error="restricted external content",
+    )
+    repo.upsert_memory_embedding(
+        memory_id="fresh",
+        provider="fake-semantic",
+        model="fake-v2",
+        dimension=2,
+        content_hash_value="stale_hash",
+        vector=[0.3, 0.7],
+        status="failed",
+        error="provider failed",
+    )
+
+    summary = repo.summarize_embedding_index(provider="fake-semantic", model="fake-v1", dimension=2)
+
+    assert summary["fresh_count"] == 1
+    assert summary["skipped_count"] == 1
+    assert summary["failed_count"] == 0

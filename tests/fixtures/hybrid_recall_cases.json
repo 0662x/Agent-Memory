@@ -1,0 +1,79 @@
+{
+  "cases": [
+    {
+      "case_id": "en_exercise_drink",
+      "query": "What do I drink after exercise?",
+      "expected_memory_id": "en_coconut",
+      "expected_top3": ["en_coconut"],
+      "memories": [
+        {
+          "memory_id": "en_coconut",
+          "content": "I usually buy coconut water after weekend runs.",
+          "tags": ["routine", "drink", "exercise"],
+          "primary_category": "personal_preference"
+        },
+        {
+          "memory_id": "en_coffee",
+          "content": "I like espresso while reading technical papers.",
+          "tags": ["drink"],
+          "primary_category": "personal_preference"
+        },
+        {
+          "memory_id": "en_weekend",
+          "content": "I usually organize my desk on Sunday evenings.",
+          "tags": ["routine"],
+          "primary_category": "personal_routine"
+        }
+      ]
+    },
+    {
+      "case_id": "zh_exercise_drink",
+      "query": "我运动完一般喝什么？",
+      "expected_memory_id": "zh_soy",
+      "expected_top3": ["zh_soy"],
+      "memories": [
+        {
+          "memory_id": "zh_soy",
+          "content": "我周六下午慢跑后通常买无糖豆浆。",
+          "tags": ["routine", "drink", "exercise"],
+          "primary_category": "personal_preference"
+        },
+        {
+          "memory_id": "zh_tea",
+          "content": "我晚饭后喜欢喝茉莉茶。",
+          "tags": ["routine", "drink"],
+          "primary_category": "personal_preference"
+        },
+        {
+          "memory_id": "zh_reading",
+          "content": "我周末通常整理阅读清单。",
+          "tags": ["routine"],
+          "primary_category": "personal_routine"
+        }
+      ]
+    },
+    {
+      "case_id": "replacement_current_drink",
+      "query": "What do I usually drink after running?",
+      "expected_memory_id": "new_soy",
+      "expected_top3": ["new_soy"],
+      "memories": [
+        {
+          "memory_id": "old_coconut",
+          "content": "I used to buy coconut water after runs.",
+          "tags": ["routine", "drink", "exercise"],
+          "primary_category": "personal_preference",
+          "superseded_by": "new_soy"
+        },
+        {
+          "memory_id": "new_soy",
+          "content": "I now buy soy milk after runs.",
+          "tags": ["routine", "drink", "exercise"],
+          "primary_category": "personal_preference",
+          "confidence": 0.95,
+          "importance": 0.85
+        }
+      ]
+    }
+  ]
+}

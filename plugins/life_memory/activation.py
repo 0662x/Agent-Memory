@@ -11,8 +11,8 @@ from datetime import datetime, timezone
 from typing import Any
 
 from .classification import classify_candidate
+from .hybrid_recall import hybrid_rank_memories
 from .models import LifecycleStatus, MemoryClassification, Sensitivity, TraceOperation
-from .recall import rank_memories
 from .repository import LifeMemoryRepository
 from .safety import detect_prompt_injection
 from .time_utils import clamp
@@ -316,17 +316,11 @@ def select_injectable_memories(
     policy: InjectionPolicy | None = None,
 ) -> tuple[list[InjectedMemoryEntry], dict[str, int], int]:
     policy = policy or InjectionPolicy()
-    candidates = repo.search_memories(
-        query=query,
-        limit=policy.candidate_limit,
-        include_archived=True,
-        include_sensitive=True,
-    )
-    raw_by_id = {str(item.get("memory_id")): item for item in candidates if item.get("memory_id")}
-    ranked = rank_memories(
+    ranked = hybrid_rank_memories(
         query,
-        candidates,
+        repo=repo,
         limit=policy.candidate_limit,
+        candidate_limit=policy.candidate_limit,
         include_archived=True,
         include_sensitive=True,
     )
@@ -334,16 +328,15 @@ def select_injectable_memories(
     filter_counts: Counter[str] = Counter()
     for item in ranked:
         memory_id = str(item.get("memory_id") or "")
-        merged = {**raw_by_id.get(memory_id, {}), **item}
         superseded = _is_superseded(repo, memory_id)
-        allowed, reason = is_memory_injectable(merged, policy=policy, superseded=superseded)
+        allowed, reason = is_memory_injectable(item, policy=policy, superseded=superseded)
         if not allowed:
             filter_counts[reason or FILTER_MALFORMED_MEMORY] += 1
             continue
-        selected.append(InjectedMemoryEntry.from_ranked_memory(merged, content=_bounded_content(str(merged.get("content") or ""), policy.max_content_chars)))
+        selected.append(InjectedMemoryEntry.from_ranked_memory(item, content=_bounded_content(str(item.get("content") or ""), policy.max_content_chars)))
         if len(selected) >= policy.max_memories:
             break
-    return selected, dict(filter_counts), len(candidates)
+    return selected, dict(filter_counts), len(ranked)
 
 
 def is_memory_injectable(
@@ -605,7 +598,10 @@ def _render_entry(entry: InjectedMemoryEntry, *, policy: InjectionPolicy) -> str
 
 
 def _only_generic_relevance(reason: str) -> bool:
-    if "matched query terms:" not in reason.lower():
+    lowered = reason.lower()
+    if "semantic similarity" in lowered or "semantic recall" in lowered:
+        return False
+    if "matched query terms:" not in lowered:
         return False
     _, _, tail = reason.partition(":")
     tail = tail.split(".", 1)[0]

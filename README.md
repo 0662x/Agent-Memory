@@ -13,6 +13,8 @@ Main implementation paths:
 - `plugins/life_memory/safety.py`: sensitive content and prompt-injection gates.
 - `plugins/life_memory/repository.py`: SQLite schema, persistence, traces, review export, and reflection helpers.
 - `plugins/life_memory/recall.py`: bounded lexical recall and ranking.
+- `plugins/life_memory/embeddings.py`: deterministic local embedding provider seam and vector utilities for hybrid recall.
+- `plugins/life_memory/hybrid_recall.py`: lexical/vector candidate merge, explainable score components, and time-aware reranking.
 - `plugins/life_memory/reflection.py`: `light`, `session`, `rem`, `deep`, and `daily` memory maintenance.
 - `plugins/life_memory/routing.py`: runtime routing patches that split Hermes default memory writes across native and life-memory stores, and compose pre-LLM routing guidance with activation context.
 - `plugins/life_memory/activation.py`: automatic life-memory activation gate, strict injection filters, data-only context formatting, and activation traces.
@@ -21,6 +23,7 @@ Main implementation paths:
 - `tests/`: contract, integration, unit, performance smoke, and realistic transcript coverage.
 - `specs/001-life-memory-plugin/`: base life-memory plugin spec, task list, quickstart, and design notes.
 - `specs/002-memory-activation/`: automatic activation and context-injection spec, plan, tasks, and validation notes.
+- `specs/003-hybrid-recall/`: hybrid lexical/vector recall spec, plan, tasks, and validation notes.
 
 Registered tools:
 
@@ -108,7 +111,7 @@ Latest validation:
 ```text
 2026-06-03 Australia/Sydney
 uv run python -m pytest
-112 passed in 0.60s
+137 passed in 0.63s
 Python 3.11.15, pytest 9.0.3
 ```
 
@@ -141,6 +144,18 @@ $HERMES_HOME/life_memory_review
 
 Important boundary: Markdown export is audit-only. The plugin does not read
 Markdown edits back into SQLite.
+
+
+## Hybrid Recall
+
+Life-memory recall can now use a derived semantic index in addition to lexical search:
+
+- SQLite `life_memories` remains the source of truth; embeddings are only a derived index.
+- `FakeEmbeddingProvider` provides deterministic local embeddings for tests and offline prototype behavior.
+- Hybrid recall merges lexical and vector candidates by `memory_id` and returns additive `score_components` plus `recall_sources`.
+- Reranking uses semantic score, lexical score, importance, confidence, feedback, evidence, lifecycle, expiry, and supersession state.
+- If embeddings are missing, stale, incompatible, or unavailable, recall falls back to lexical behavior.
+- Automatic activation can use hybrid recall when a fresh semantic index is available, while keeping the same data-only injection and safety filters.
 
 ## Automatic Memory Activation
 
@@ -193,6 +208,7 @@ Allowed modified paths for this prototype:
 - `/Users/oliver/Projects/hermes-life-memory/tests/`
 - `/Users/oliver/Projects/hermes-life-memory/specs/001-life-memory-plugin/`
 - `/Users/oliver/Projects/hermes-life-memory/specs/002-memory-activation/`
+- `/Users/oliver/Projects/hermes-life-memory/specs/003-hybrid-recall/`
 - `/Users/oliver/Projects/hermes-life-memory/README.md`
 - project metadata in `/Users/oliver/Projects/hermes-life-memory/`
 

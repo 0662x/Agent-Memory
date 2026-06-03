@@ -475,6 +475,30 @@ def test_store_and_recall_are_bounded_with_ten_thousand_rows(
     assert recalled["results"][0]["memory_id"] == stored["memory_id"]
 
 
+def test_store_builds_semantic_index_for_paraphrased_recall(registered_tools) -> None:
+    store = registered_tools["life_memory_store"]["handler"]
+    recall = registered_tools["life_memory_recall"]["handler"]
+
+    stored = json.loads(
+        store(
+            {
+                "content": "Remember that I usually buy coconut water after weekend runs.",
+                "explicit_user_request": True,
+                "importance": 0.9,
+                "confidence": 0.9,
+            }
+        )
+    )
+    recalled = json.loads(recall({"query": "What do I drink after exercise?", "limit": 3}))
+
+    assert stored["ok"] is True
+    assert stored["semantic_index_status"] == "ready"
+    assert recalled["ok"] is True
+    assert recalled["outcome"] == "success"
+    assert recalled["results"][0]["memory_id"] == stored["memory_id"]
+    assert "vector" in recalled["results"][0]["recall_sources"]
+
+
 def _seed_many_memories(repo: LifeMemoryRepository, *, row_count: int) -> None:
     now = now_iso()
     rows = []

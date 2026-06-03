@@ -10,7 +10,7 @@ from .models import EvidenceType, FeedbackType, LifecycleStatus, MemoryKind, Ref
 from .time_utils import clamp, content_hash, json_dumps, json_loads, make_id, now_iso
 from .recall import tokenize
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 DATABASE_FILENAME = "life_memory.db"
 
 
@@ -169,6 +169,27 @@ class LifeMemoryRepository:
                 ON memory_links(from_memory_id);
             CREATE INDEX IF NOT EXISTS idx_memory_links_to
                 ON memory_links(to_memory_id);
+
+            CREATE TABLE IF NOT EXISTS memory_embeddings (
+                embedding_id TEXT PRIMARY KEY,
+                memory_id TEXT NOT NULL REFERENCES life_memories(memory_id) ON DELETE CASCADE,
+                provider TEXT NOT NULL,
+                model TEXT NOT NULL,
+                dimension INTEGER NOT NULL,
+                content_hash TEXT NOT NULL,
+                vector_json TEXT NOT NULL,
+                status TEXT NOT NULL,
+                error TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_memory_embeddings_unique
+                ON memory_embeddings(memory_id, provider, model, dimension);
+            CREATE INDEX IF NOT EXISTS idx_memory_embeddings_memory_id
+                ON memory_embeddings(memory_id);
+            CREATE INDEX IF NOT EXISTS idx_memory_embeddings_provider
+                ON memory_embeddings(provider, model, dimension, status);
 
             CREATE TABLE IF NOT EXISTS memory_feedback (
                 feedback_id TEXT PRIMARY KEY,
@@ -352,6 +373,231 @@ class LifeMemoryRepository:
             """,
             (content_hash_value, LifecycleStatus.DELETED.value),
         )
+
+    def upsert_memory_embedding(
+        self,
+        *,
+        memory_id: str,
+        provider: str,
+        model: str,
+        dimension: int,
+        content_hash_value: str,
+        vector: list[float] | tuple[float, ...],
+        status: str = "ready",
+        error: str | None = None,
+    ) -> dict[str, Any]:
+        now = now_iso()
+        embedding_id = make_id("emb")
+        dimension_value = int(dimension)
+        vector_values = [float(value) for value in vector]
+        with self.transaction() as conn:
+            existing = conn.execute(
+                """
+                SELECT embedding_id FROM memory_embeddings
+                WHERE memory_id = ? AND provider = ? AND model = ? AND dimension = ?
+                """,
+                (memory_id, provider, model, dimension_value),
+            ).fetchone()
+            if existing is not None:
+                embedding_id = str(existing["embedding_id"])
+            conn.execute(
+                """
+                INSERT INTO memory_embeddings (
+                    embedding_id, memory_id, provider, model, dimension,
+                    content_hash, vector_json, status, error, created_at, updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(memory_id, provider, model, dimension) DO UPDATE SET
+                    content_hash = excluded.content_hash,
+                    vector_json = excluded.vector_json,
+                    status = excluded.status,
+                    error = excluded.error,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    embedding_id,
+                    memory_id,
+                    provider,
+                    model,
+                    dimension_value,
+                    content_hash_value,
+                    json_dumps(vector_values),
+                    status,
+                    error,
+                    now,
+                    now,
+                ),
+            )
+        return {
+            "embedding_id": embedding_id,
+            "memory_id": memory_id,
+            "provider": provider,
+            "model": model,
+            "dimension": dimension_value,
+            "content_hash": content_hash_value,
+            "vector": vector_values,
+            "status": status,
+            "error": error,
+        }
+
+    def get_fresh_memory_embedding(
+        self,
+        *,
+        memory_id: str,
+        provider: str,
+        model: str,
+        dimension: int,
+        content_hash_value: str,
+    ) -> dict[str, Any] | None:
+        row = self.connect().execute(
+            """
+            SELECT * FROM memory_embeddings
+            WHERE memory_id = ?
+              AND provider = ?
+              AND model = ?
+              AND dimension = ?
+              AND content_hash = ?
+              AND status = 'ready'
+            """,
+            (memory_id, provider, model, int(dimension), content_hash_value),
+        ).fetchone()
+        return map_embedding_row(row) if row is not None else None
+
+    def list_searchable_embeddings(
+        self,
+        *,
+        provider: str,
+        model: str,
+        dimension: int,
+        categories: tuple[str, ...] | list[str] = (),
+        include_archived: bool = False,
+        include_sensitive: bool = False,
+        limit: int = 200,
+    ) -> list[dict[str, Any]]:
+        where = [
+            "e.provider = ?",
+            "e.model = ?",
+            "e.dimension = ?",
+            "e.status = 'ready'",
+            "e.content_hash = m.content_hash",
+            "m.status <> ?",
+            "(m.valid_until IS NULL OR m.valid_until > ?)",
+        ]
+        params: list[Any] = [
+            provider,
+            model,
+            int(dimension),
+            LifecycleStatus.DELETED.value,
+            now_iso(),
+        ]
+        if not include_archived:
+            where.append("m.status <> ?")
+            params.append(LifecycleStatus.ARCHIVED.value)
+        if not include_sensitive:
+            where.append("m.sensitivity = ?")
+            params.append("normal")
+        if categories:
+            placeholders = ", ".join("?" for _ in categories)
+            where.append(f"m.primary_category IN ({placeholders})")
+            params.extend(categories)
+        params.append(max(1, min(int(limit), 1000)))
+        rows = self.connect().execute(
+            f"""
+            SELECT
+                m.*,
+                e.embedding_id,
+                e.provider AS embedding_provider,
+                e.model AS embedding_model,
+                e.dimension AS embedding_dimension,
+                e.vector_json AS embedding_vector_json,
+                e.status AS embedding_status,
+                e.error AS embedding_error,
+                e.updated_at AS embedding_updated_at
+            FROM memory_embeddings e
+            JOIN life_memories m ON m.memory_id = e.memory_id
+            WHERE {' AND '.join(where)}
+            ORDER BY m.updated_at DESC
+            LIMIT ?
+            """,
+            tuple(params),
+        ).fetchall()
+        return [map_embedding_memory_row(row) for row in rows]
+
+    def mark_stale_embeddings(
+        self,
+        *,
+        provider: str | None = None,
+        model: str | None = None,
+        dimension: int | None = None,
+    ) -> int:
+        where = ["status = 'ready'"]
+        params: list[Any] = []
+        if provider is not None:
+            where.append("provider = ?")
+            params.append(provider)
+        if model is not None:
+            where.append("model = ?")
+            params.append(model)
+        if dimension is not None:
+            where.append("dimension = ?")
+            params.append(int(dimension))
+        with self.transaction() as conn:
+            cursor = conn.execute(
+                f"""
+                UPDATE memory_embeddings
+                SET status = 'stale', updated_at = ?
+                WHERE {' AND '.join(where)}
+                  AND EXISTS (
+                      SELECT 1 FROM life_memories m
+                      WHERE m.memory_id = memory_embeddings.memory_id
+                        AND m.content_hash <> memory_embeddings.content_hash
+                  )
+                """,
+                (now_iso(), *params),
+            )
+        return int(cursor.rowcount or 0)
+
+    def summarize_embedding_index(
+        self,
+        *,
+        provider: str,
+        model: str,
+        dimension: int,
+    ) -> dict[str, int | str]:
+        rows = self.connect().execute(
+            """
+            SELECT e.status, e.content_hash, m.content_hash AS current_hash
+            FROM memory_embeddings e
+            LEFT JOIN life_memories m ON m.memory_id = e.memory_id
+            WHERE e.provider = ? AND e.model = ? AND e.dimension = ?
+            """,
+            (provider, model, int(dimension)),
+        ).fetchall()
+        indexed = len(rows)
+        fresh = 0
+        stale = 0
+        skipped = 0
+        failed = 0
+        for row in rows:
+            status = str(row["status"])
+            if status == "skipped":
+                skipped += 1
+            elif status == "failed":
+                failed += 1
+            elif status == "ready" and row["current_hash"] == row["content_hash"]:
+                fresh += 1
+            else:
+                stale += 1
+        return {
+            "provider": provider,
+            "model": model,
+            "dimension": int(dimension),
+            "indexed_count": indexed,
+            "fresh_count": fresh,
+            "stale_count": stale,
+            "skipped_count": skipped,
+            "failed_count": failed,
+        }
 
     def get_memory(self, memory_id: str) -> dict[str, Any] | None:
         row = self.connect().execute(
@@ -1158,6 +1404,20 @@ class LifeMemoryRepository:
 
 def row_to_dict(row: sqlite3.Row) -> dict[str, Any]:
     return {key: row[key] for key in row.keys()}
+
+
+def map_embedding_row(row: sqlite3.Row) -> dict[str, Any]:
+    data = row_to_dict(row)
+    data["vector"] = json_loads(data.pop("vector_json"), default=[])
+    return data
+
+
+def map_embedding_memory_row(row: sqlite3.Row) -> dict[str, Any]:
+    data = row_to_dict(row)
+    data["tags"] = json_loads(data.pop("tags_json"), default=[])
+    data["context"] = json_loads(data.pop("context_json"), default={})
+    data["vector"] = json_loads(data.pop("embedding_vector_json"), default=[])
+    return data
 
 
 def map_memory_row(row: sqlite3.Row) -> dict[str, Any]:

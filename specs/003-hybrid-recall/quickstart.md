@@ -1,6 +1,6 @@
 # Quickstart: Hybrid Recall For Life Memory
 
-This quickstart will validate the `003-hybrid-recall` feature after implementation. It assumes `001-life-memory-plugin` and `002-memory-activation` are already working.
+This quickstart validates the implemented `003-hybrid-recall` feature. It assumes `001-life-memory-plugin` and `002-memory-activation` are already working.
 
 ## 1. Repository
 
@@ -21,10 +21,11 @@ git branch --show-current
 bash .specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks
 ```
 
-Expected after tasks are generated:
+Latest validation:
 
 ```text
-FEATURE_DIR resolves to specs/003-hybrid-recall
+2026-06-03 Australia/Sydney
+FEATURE_DIR=/Users/oliver/Projects/hermes-life-memory/specs/003-hybrid-recall
 AVAILABLE_DOCS includes research.md, data-model.md, contracts/, quickstart.md, tasks.md
 ```
 
@@ -36,7 +37,15 @@ Run embedding and hybrid recall unit tests:
 uv run python -m pytest tests/unit/test_embeddings.py tests/unit/test_hybrid_recall.py
 ```
 
-Expected behavior:
+Latest validation:
+
+```text
+2026-06-03 Australia/Sydney
+uv run python -m pytest tests/unit/test_embeddings.py tests/unit/test_hybrid_recall.py tests/integration/test_hybrid_recall_flow.py tests/integration/test_activation_hook.py tests/unit/test_recall.py
+37 passed in 0.36s
+```
+
+Covered behavior:
 
 - fake embedding provider is deterministic;
 - invalid vector dimensions are rejected;
@@ -50,7 +59,7 @@ Expected behavior:
 Run hybrid recall integration tests:
 
 ```bash
-uv run python -m pytest tests/integration/test_hybrid_recall.py
+uv run python -m pytest tests/integration/test_hybrid_recall_flow.py
 ```
 
 Expected behavior:
@@ -59,7 +68,8 @@ Expected behavior:
 - hybrid top-3 recall improves over lexical-only fixture baseline;
 - deleted, expired, restricted, unauthorized sensitive, and superseded-current memories do not appear in normal automatic injection;
 - unavailable embeddings fall back to lexical recall;
-- large memory set smoke remains bounded.
+- large memory set smoke remains bounded;
+- existing 10,000-row handler smoke now exercises the default hybrid recall handler with lexical fallback, while `test_large_hybrid_recall_smoke_is_bounded` covers fresh semantic-index candidates.
 
 ## 5. Activation Regression
 
@@ -80,10 +90,13 @@ Expected behavior:
 uv run python -m pytest
 ```
 
-Expected final validation:
+Latest validation:
 
 ```text
-All tests pass.
+2026-06-03 Australia/Sydney
+uv run python -m pytest
+137 passed in 0.63s
+Python 3.11.15, pytest 9.0.3
 ```
 
 ## 7. Manual Hermes Smoke Test
@@ -106,7 +119,7 @@ Ask with a paraphrase:
 我运动完一般喝什么？请直接回答。
 ```
 
-Expected behavior after implementation:
+Expected behavior:
 
 - Hermes can answer using the soy-milk memory without exact lexical overlap;
 - no deleted, restricted, or expired content is injected;
@@ -126,3 +139,9 @@ failed_count: 0
 ```
 
 The report must not include restricted raw content.
+
+## 9. Current Implementation Note
+
+This stage currently uses a deterministic local fake embedding provider and SQLite JSON vector storage. That proves the hybrid recall architecture, score merging, stale-index handling, and activation integration without adding mandatory external model or vector database dependencies. A real local or external embedding provider can be added later behind the provider interface.
+
+Manual Hermes smoke test has not been run for this stage in this pass. Hermes CLI is available, but this pass stopped before invoking an external model or writing smoke data into the real profile. Automated integration coverage validates the same paraphrased activation path with temporary `HERMES_HOME`.
