@@ -14,11 +14,13 @@ Main implementation paths:
 - `plugins/life_memory/repository.py`: SQLite schema, persistence, traces, review export, and reflection helpers.
 - `plugins/life_memory/recall.py`: bounded lexical recall and ranking.
 - `plugins/life_memory/reflection.py`: `light`, `session`, `rem`, `deep`, and `daily` memory maintenance.
-- `plugins/life_memory/routing.py`: runtime routing patches that split Hermes default memory writes across native and life-memory stores.
+- `plugins/life_memory/routing.py`: runtime routing patches that split Hermes default memory writes across native and life-memory stores, and compose pre-LLM routing guidance with activation context.
+- `plugins/life_memory/activation.py`: automatic life-memory activation gate, strict injection filters, data-only context formatting, and activation traces.
 - `plugins/life_memory/session_adapter.py`: read-only Hermes session/state adapter with transcript fallback.
 - `plugins/life_memory/export_review.py`: read-only Markdown review export.
 - `tests/`: contract, integration, unit, performance smoke, and realistic transcript coverage.
-- `specs/001-life-memory-plugin/`: spec, task list, quickstart, and design notes.
+- `specs/001-life-memory-plugin/`: base life-memory plugin spec, task list, quickstart, and design notes.
+- `specs/002-memory-activation/`: automatic activation and context-injection spec, plan, tasks, and validation notes.
 
 Registered tools:
 
@@ -31,7 +33,7 @@ Registered tools:
 
 Registered hooks:
 
-- `pre_llm_call`: injects a short layered routing reminder when Hermes supports plugin hooks.
+- `pre_llm_call`: injects a short layered routing reminder and, when clearly relevant and safe, a bounded data-only life-memory context block.
 
 ## Runtime Data
 
@@ -104,9 +106,9 @@ reproducible form of `python -m pytest`.
 Latest validation:
 
 ```text
-2026-06-02 Australia/Sydney
+2026-06-03 Australia/Sydney
 uv run python -m pytest
-89 passed in 0.40s
+112 passed in 0.60s
 Python 3.11.15, pytest 9.0.3
 ```
 
@@ -139,6 +141,19 @@ $HERMES_HOME/life_memory_review
 
 Important boundary: Markdown export is audit-only. The plugin does not read
 Markdown edits back into SQLite.
+
+## Automatic Memory Activation
+
+Before LLM calls, the plugin can now run a conservative activation pipeline:
+
+- decide whether the current request clearly needs life memory;
+- skip technical/project, user-profile, temporary, malformed, and ambiguous requests;
+- recall a bounded candidate set only after the activation gate passes;
+- exclude deleted, archived, expired, restricted, unauthorized sensitive, superseded, low-confidence, low-relevance, and high-injection-risk memories;
+- inject at most a small data-only context block with `memory_id`, `status`, `confidence`, and `sensitivity`;
+- fail closed to routing guidance only when hook payloads or storage are unavailable.
+
+The injected memory block is data only. It must not be treated as system, developer, tool, or user instructions.
 
 ## Runtime Memory Routing
 
@@ -177,6 +192,7 @@ Allowed modified paths for this prototype:
 - `/Users/oliver/Projects/hermes-life-memory/plugins/life_memory/`
 - `/Users/oliver/Projects/hermes-life-memory/tests/`
 - `/Users/oliver/Projects/hermes-life-memory/specs/001-life-memory-plugin/`
+- `/Users/oliver/Projects/hermes-life-memory/specs/002-memory-activation/`
 - `/Users/oliver/Projects/hermes-life-memory/README.md`
 - project metadata in `/Users/oliver/Projects/hermes-life-memory/`
 

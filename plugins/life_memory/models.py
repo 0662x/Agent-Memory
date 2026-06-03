@@ -75,6 +75,8 @@ class TraceOperation(str, Enum):
     MODEL_RERANK = "model_rerank"
     MODEL_REFLECT = "model_reflect"
     MODEL_SUMMARIZE = "model_summarize"
+    ACTIVATION = "activation"
+    CONTEXT_INJECTION = "context_injection"
 
 
 class ReflectionPhase(str, Enum):
