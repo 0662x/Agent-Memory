@@ -1,0 +1,60 @@
+{
+  "cases": [
+    {
+      "case_id": "zh_weekend_drink_positive",
+      "input": "我周末运动后一般会买什么饮品？",
+      "expected_activate": true,
+      "expected_request_type": "life_memory",
+      "reason_contains": ["personal", "routine"]
+    },
+    {
+      "case_id": "en_weekend_run_positive",
+      "input": "What do I usually buy after weekend runs?",
+      "expected_activate": true,
+      "expected_request_type": "life_memory",
+      "reason_contains": ["personal", "routine"]
+    },
+    {
+      "case_id": "zh_relationship_positive",
+      "input": "你还记得我姐姐住在哪个城市吗？",
+      "expected_activate": true,
+      "expected_request_type": "life_memory",
+      "reason_contains": ["personal"]
+    },
+    {
+      "case_id": "technical_negative",
+      "input": "这个 Python 测试为什么失败？",
+      "expected_activate": false,
+      "expected_request_type": "technical",
+      "reason_contains": ["technical"]
+    },
+    {
+      "case_id": "temporary_negative",
+      "input": "这次对话先记住这个临时变量名。",
+      "expected_activate": false,
+      "expected_request_type": "temporary",
+      "reason_contains": ["temporary"]
+    },
+    {
+      "case_id": "profile_negative",
+      "input": "以后回答都先给我中文摘要。",
+      "expected_activate": false,
+      "expected_request_type": "profile",
+      "reason_contains": ["profile"]
+    },
+    {
+      "case_id": "smalltalk_negative",
+      "input": "你好，今天怎么样？",
+      "expected_activate": false,
+      "expected_request_type": "smalltalk",
+      "reason_contains": ["small talk"]
+    },
+    {
+      "case_id": "malformed_negative",
+      "input": "",
+      "expected_activate": false,
+      "expected_request_type": "malformed",
+      "reason_contains": ["missing"]
+    }
+  ]
+}
