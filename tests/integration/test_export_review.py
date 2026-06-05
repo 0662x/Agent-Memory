@@ -68,7 +68,9 @@ def test_export_review_writes_expected_markdown_files_and_redacts_sensitive(
     assert "Ashfield" not in facts + preferences + patterns
     assert "Sensitive" in facts + preferences + patterns
     assert "life_memory_sync_review" in change_requests
-    assert "```life-memory-change" in change_requests
+    assert "change the fence language to `life-memory-change`" in change_requests
+    assert "```life-memory-change" not in change_requests
+    assert "```text" in change_requests
     assert "Supported actions" in change_requests
 
 
@@ -144,3 +146,29 @@ def test_export_review_includes_review_needed_file(
 
     assert stored["memory_id"] in review_needed
     assert "quiet mornings" in review_needed
+
+
+def test_export_review_excludes_approved_young_memory_from_review_needed(
+    registered_tools,
+    hermes_home: Path,
+) -> None:
+    store = registered_tools["life_memory_store"]["handler"]
+    export = registered_tools["life_memory_export_review"]["handler"]
+    stored = _store(store, "Remember that I prefer quiet evening walks.")
+
+    repo = LifeMemoryRepository(hermes_home=hermes_home)
+    repo.update_memory_status(
+        stored["memory_id"],
+        status=LifecycleStatus.YOUNG,
+        review_status=ReviewStatus.APPROVED,
+    )
+
+    result = json.loads(export({}))
+    target = Path(result["target_dir"])
+    review_needed = (target / "review-needed.md").read_text(encoding="utf-8")
+    preferences = (target / "memory-library" / "preferences.md").read_text(encoding="utf-8")
+
+    assert stored["memory_id"] not in review_needed
+    assert "quiet evening walks" not in review_needed
+    assert stored["memory_id"] in preferences
+    assert "quiet evening walks" in preferences

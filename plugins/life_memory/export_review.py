@@ -111,13 +111,21 @@ def _render_category(memories: list[dict[str, Any]], primary_category: str, sens
 
 
 def _render_review_needed(memories: list[dict[str, Any]], sensitive_mode: str) -> str:
-    rows = [
-        item
-        for item in memories
-        if item.get("review_status") == ReviewStatus.NEEDS_REVIEW.value
-        or item.get("status") in {LifecycleStatus.YOUNG.value, LifecycleStatus.PATTERN_CANDIDATE.value}
-    ]
+    rows = [item for item in memories if _is_review_needed(item)]
     return _render_memory_list("# Review Needed", rows, sensitive_mode)
+
+
+def _is_review_needed(memory: dict[str, Any]) -> bool:
+    review_status = memory.get("review_status")
+    if review_status == ReviewStatus.NEEDS_REVIEW.value:
+        return True
+    if review_status in {
+        ReviewStatus.APPROVED.value,
+        ReviewStatus.REJECTED.value,
+        ReviewStatus.AUTO_PROMOTED.value,
+    }:
+        return False
+    return memory.get("status") in {LifecycleStatus.YOUNG.value, LifecycleStatus.PATTERN_CANDIDATE.value}
 
 
 def _render_archive(memories: list[dict[str, Any]], sensitive_mode: str) -> str:
@@ -203,7 +211,10 @@ def _render_change_requests() -> str:
             "",
             "## Examples",
             "",
-            "```life-memory-change",
+            "Examples use `text` fences so the generated template is safe to dry-run as-is.",
+            "When ready, copy an example and change the fence language to `life-memory-change`.",
+            "",
+            "```text",
             "id: req-delete-example",
             "action: delete",
             "memory_id: mem_example",
@@ -211,7 +222,7 @@ def _render_change_requests() -> str:
             "confirm: true",
             "```",
             "",
-            "```life-memory-change",
+            "```text",
             "id: req-replace-example",
             "action: replace",
             "memory_id: mem_example",
@@ -220,7 +231,7 @@ def _render_change_requests() -> str:
             "confirm: true",
             "```",
             "",
-            "```life-memory-change",
+            "```text",
             "id: req-merge-example",
             "action: merge",
             "memory_ids: [mem_first, mem_second]",

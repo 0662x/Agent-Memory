@@ -310,6 +310,20 @@ def test_sync_missing_file_returns_not_found(registered_tools) -> None:
     assert result["trace_id"].startswith("trace_")
 
 
+def test_sync_generated_template_is_safe_noop(registered_tools) -> None:
+    export = registered_tools["life_memory_export_review"]["handler"]
+    sync = registered_tools["life_memory_sync_review"]["handler"]
+
+    json.loads(export({}))
+    result = json.loads(sync({"apply": False}))
+
+    assert result["ok"] is True
+    assert result["outcome"] == "planned"
+    assert result["summary"]["parsed"] == 0
+    assert result["actions"] == []
+    assert result["trace_id"].startswith("trace_")
+
+
 def test_sync_reads_only_change_requests_file_from_export_dir(registered_tools, hermes_home: Path) -> None:
     store = registered_tools["life_memory_store"]["handler"]
     export = registered_tools["life_memory_export_review"]["handler"]

@@ -708,14 +708,7 @@ def run_review_sync(
             apply=apply,
             source_path=str(source_path) if source_path else None,
             source_hash=source_hash,
-            actions=[
-                ReviewSyncActionResult(
-                    request_id=None,
-                    action=None,
-                    outcome="not_found",
-                    errors=["no life-memory-change request blocks found"],
-                )
-            ],
+            actions=[],
         )
         plan.trace_id = append_review_sync_trace(repo, plan)
         return plan
