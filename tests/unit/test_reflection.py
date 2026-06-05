@@ -93,6 +93,35 @@ def test_session_reflection_extracts_candidates_without_fabricating_memory(herme
     assert count["count"] == 0
 
 
+def test_session_reflection_extracts_chinese_family_schedule_and_declines_boundaries(
+    hermes_home: Path,
+) -> None:
+    repo = LifeMemoryRepository(hermes_home=hermes_home)
+    repo.initialize()
+    transcript = [
+        {
+            "role": "user",
+            "content": (
+                "这次对话只是整理 migration draft，不要长期记这个。"
+                "我周三晚上通常要接侄女 Ava 下芭蕾课，所以不安排晚会议。"
+                "我希望以后做 agent 岗位。"
+            ),
+            "source_ref": "zh_boundary_1",
+        }
+    ]
+
+    result = run_reflection(repo, mode="session", apply=True, transcript=transcript)
+    stored_rows = [repo.get_memory(memory_id) for memory_id in result["stored_memory_ids"]]
+    stored_text = "\n".join(row["content"] for row in stored_rows if row is not None)
+
+    assert result["ok"] is True
+    assert result["stored_memory_ids"]
+    assert "侄女 Ava" in stored_text
+    assert "migration draft" not in stored_text
+    assert "agent 岗位" not in stored_text
+    assert result["declined_candidate_count"] >= 2
+
+
 def test_deep_reflection_promotes_low_risk_pattern_with_supporting_ids(hermes_home: Path) -> None:
     repo = LifeMemoryRepository(hermes_home=hermes_home)
     repo.initialize()

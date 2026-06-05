@@ -52,6 +52,30 @@ def test_activation_pipeline_injects_relevant_life_memory(registered_tools, herm
     assert "coconut water" in result["context"]
 
 
+def test_activation_injects_default_confidence_natural_young_memory(
+    registered_tools,
+    hermes_home: Path,
+) -> None:
+    store = registered_tools["life_memory_store"]["handler"]
+    stored = json.loads(
+        store(
+            {
+                "content": "我晚饭后一般会泡一杯茉莉茶，睡前不喝咖啡。",
+                "explicit_user_request": False,
+            }
+        )
+    )
+    assert stored["ok"] is True
+
+    repo = LifeMemoryRepository(hermes_home=hermes_home)
+    repo.initialize()
+    result = build_activation_context({"message": "我晚饭后通常会喝什么茶？"}, repo=repo)
+
+    assert result["outcome"] == "injected"
+    assert stored["memory_id"] in result["memory_ids"]
+    assert "茉莉茶" in result["context"]
+
+
 def test_activation_pipeline_returns_no_context_when_no_memory_matches(registered_tools, hermes_home: Path) -> None:
     _store(registered_tools, "Remember that I usually buy coconut water after weekend runs.")
     repo = LifeMemoryRepository(hermes_home=hermes_home)
