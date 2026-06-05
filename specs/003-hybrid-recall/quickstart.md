@@ -93,9 +93,9 @@ uv run python -m pytest
 Latest validation:
 
 ```text
-2026-06-03 Australia/Sydney
+2026-06-06 Australia/Sydney
 uv run python -m pytest
-137 passed in 0.63s
+137 passed in 0.75s
 Python 3.11.15, pytest 9.0.3
 ```
 
@@ -144,4 +144,25 @@ The report must not include restricted raw content.
 
 This stage currently uses a deterministic local fake embedding provider and SQLite JSON vector storage. That proves the hybrid recall architecture, score merging, stale-index handling, and activation integration without adding mandatory external model or vector database dependencies. A real local or external embedding provider can be added later behind the provider interface.
 
-Manual Hermes smoke test has not been run for this stage in this pass. Hermes CLI is available, but this pass stopped before invoking an external model or writing smoke data into the real profile. Automated integration coverage validates the same paraphrased activation path with temporary `HERMES_HOME`.
+Latest manual result:
+
+```text
+2026-06-03 Australia/Sydney
+Hermes CLI: /Users/oliver/.local/bin/hermes
+Hermes version: Hermes Agent v0.15.1 (2026.5.29)
+Plugin mount: /Users/oliver/.hermes/plugins/life_memory -> /Users/oliver/Projects/hermes-life-memory/plugins/life_memory
+Marker: HYBRID_RECALL_MARKER_20260603_210840
+Stored memory_id: mem_0870dbcadc7347dab6a451fd7abd577f
+Stored content: 周六下午慢跑后，通常会买无糖豆浆
+Embedding provider/model/status: fake-semantic / fake-semantic-v1 / ready
+Prompt: 我运动完一般喝什么？请直接回答。
+Response: 你运动完一般都喝无糖豆浆（尤其是周六下午慢跑后会买）喵。
+Activation trace_id: trace_3ab4e91d6ce64f3281179beb437bbe06
+Activation outcome: injected
+Injected memory ids: ["mem_0870dbcadc7347dab6a451fd7abd577f"]
+Context chars: 522
+Cleanup trace_id: trace_b5761ac660ac4ee09a1961dc232f9d92
+Cleanup outcome: smoke memory soft-deleted after verification
+```
+
+Observation: the smoke memory was stored through Hermes, indexed in `memory_embeddings`, recalled through automatic `pre_llm_call` activation for a paraphrased Chinese query, then soft-deleted through `life_memory_forget`.

@@ -192,9 +192,9 @@
 - [x] T067 [P] Review `specs/003-hybrid-recall/contracts/hybrid-recall.md` against final `life_memory_recall` schema and adjust only additive fields.
 - [x] T068 Add performance smoke coverage proving hybrid recall remains bounded with at least 10,000 memories or the existing project performance scale.
 - [x] T069 Run `uv run python -m pytest` and record the result in `README.md` and `specs/003-hybrid-recall/quickstart.md`.
-- [ ] T070 Run manual Hermes smoke test from `specs/003-hybrid-recall/quickstart.md`, if Hermes runtime is available, and record outcome or blocker.
+- [x] T070 Run manual Hermes smoke test from `specs/003-hybrid-recall/quickstart.md`, if Hermes runtime is available, and record outcome or blocker.
 - [x] T071 Review `git status --short` and ensure only intended `003-hybrid-recall` files and code changes are staged.
-- [ ] T072 Optional: add `specs/003-hybrid-recall/project-report.md` after implementation if a stage report is needed for review.
+- [x] T072 Optional: add `specs/003-hybrid-recall/project-report.md` after implementation if a stage report is needed for review.
 
 ---
 

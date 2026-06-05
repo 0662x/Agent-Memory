@@ -109,9 +109,9 @@ reproducible form of `python -m pytest`.
 Latest validation:
 
 ```text
-2026-06-03 Australia/Sydney
+2026-06-06 Australia/Sydney
 uv run python -m pytest
-137 passed in 0.63s
+137 passed in 0.75s
 Python 3.11.15, pytest 9.0.3
 ```
 

@@ -1,9 +1,9 @@
 # Hermes 分层生活记忆插件项目报告
 
-**项目名称**：Hermes Life Memory Plugin  
-**项目类型**：面向个人 AI agent 的长期记忆插件原型  
-**当前状态**：MVP+ 阶段完成，已具备本地可运行、可测试、可审计的完整闭环  
-**最近验证**：2026-06-03，`uv run python -m pytest`，89 项测试全部通过
+**项目名称**：Hermes Life Memory Plugin
+**项目类型**：面向个人 AI agent 的长期记忆插件原型
+**当前状态**：001 基础闭环完成，002 自动激活和 003 hybrid recall 已补齐
+**最近验证**：2026-06-06 Australia/Sydney，`uv run python -m pytest`，137 项测试全部通过
 
 ## 1. 项目背景
 
@@ -82,17 +82,20 @@ Hermes 原本已有记忆能力，但不同类型的记忆容易混在一起。�
 
 ### 4.3 召回机制
 
-当前召回是可解释的混合词面召回，核心包括：
+当前召回已经从早期可解释词面召回，升级为 lexical + semantic hybrid recall。核心包括：
 
 - 英文 token 匹配；
 - 中文 CJK n-gram；
+- 派生 `memory_embeddings` 语义索引；
+- lexical/vector candidate merge；
+- time-aware rerank；
 - 标签和主分类参与搜索；
 - importance、confidence、feedback score、evidence count 等参与排序；
 - `young` 记忆降权且每次最多返回 2 条；
 - `deleted`、过期、默认 archived、未授权 sensitive/restricted 记忆不参与普通召回；
 - 含 prompt injection 风险的内容只作为普通数据，不作为指令。
 
-项目中专门补了中文日常问法的召回能力，例如用户用中文问“周末运动后一般买什么饮品”，能召回之前保存的相关中文生活习惯。
+项目中专门补了中文日常问法和 paraphrase 召回能力，例如用户用中文问“我运动完一般喝什么”，可以召回“周六下午慢跑后通常买无糖豆浆”这类不完全词面重合的生活习惯。
 
 ### 4.4 纠错、反馈和遗忘
 
@@ -142,6 +145,28 @@ Hermes 原本已有记忆能力，但不同类型的记忆容易混在一起。�
 
 实现方式是用户插件运行时 patch Hermes 已导入对象、memory tool schema、memory tool 调用、MemoryManager mirror 和 holographic provider 行为。这样可以实现记忆分流，同时避免直接修改 Hermes 主程序源码，降低后续更新 Hermes 时的冲突风险。
 
+### 4.8 自动记忆激活和上下文注入
+
+`002-memory-activation` 已经实现回答前自动判断是否需要生活记忆：
+
+- 技术、项目、临时任务、用户画像和泛泛闲聊默认不触发生活记忆；
+- 明确生活习惯、关系、偏好、日常模式等问题会触发 recall；
+- 注入内容是 bounded data-only memory block；
+- 注入条目带 `memory_id`、status、confidence、sensitivity 和 relevance reason；
+- deleted、archived、expired、restricted、未授权 sensitive、superseded、低置信和高 injection-risk 记忆不会自动注入；
+- hook payload 异常或 storage 不可用时 fail closed，只保留 routing guidance。
+
+### 4.9 Hybrid Recall
+
+`003-hybrid-recall` 已经实现 hybrid lexical/vector candidate retrieval 和可解释 rerank：
+
+- SQLite `life_memories` 仍是事实源；
+- `memory_embeddings` 是可重建的派生索引；
+- 当前默认使用 deterministic local fake embedding provider，测试不依赖网络或外部模型；
+- stale、incompatible、missing embedding 不参与 active semantic search；
+- 召回结果包含 score components 和 recall sources；
+- automatic activation 可以使用 hybrid recall，但仍执行 stricter-than-recall injection filter。
+
 ## 5. 安全和隐私设计
 
 本项目是个人本地 agent 场景，因此不是简单拒绝所有敏感信息，而是采用 confirmation-first 策略：
@@ -162,8 +187,9 @@ Hermes 原本已有记忆能力，但不同类型的记忆容易混在一起。�
 当前测试结果：
 
 ```text
+2026-06-06 Australia/Sydney
 uv run python -m pytest
-89 passed in 0.41s
+137 passed in 0.75s
 Python 3.11.15, pytest 9.0.3
 ```
 
@@ -176,10 +202,12 @@ Python 3.11.15, pytest 9.0.3
 - 反馈、纠错、替换、遗忘、软删除；
 - Markdown 导出和敏感内容脱敏；
 - session adapter 和 reflection 各阶段；
+- automatic memory activation、safe context injection 和 activation trace；
+- embedding provider、derived semantic index、hybrid recall 和 time-aware rerank；
 - 10,000 条记忆下的 store/recall 性能 smoke；
 - runtime routing 对 L2/L3/L4 的分流测试。
 
-除自动化测试外，也做过黑盒验证：在不限制 Hermes toolset 的正常 `hermes -z` 模式下，让 Hermes 记住一条中文生活偏好 marker，结果写入 `life_memory.db`，没有写入 `memory_store.db`、`MEMORY.md` 或 `USER.md`，随后自然语言召回能够查到，并在测试后清理。
+除自动化测试外，也做过黑盒验证：在不限制 Hermes toolset 的正常 `hermes -z` 模式下，让 Hermes 记住中文生活偏好 marker，结果写入 `life_memory.db`，没有写入 `memory_store.db`、`MEMORY.md` 或 `USER.md`。003 阶段还验证了 smoke memory 被写入、indexed 到 `memory_embeddings`、通过 paraphrased 中文问题自动激活召回，并在测试后 soft delete 清理。
 
 ## 7. 当前做到的水平
 
@@ -189,6 +217,8 @@ Python 3.11.15, pytest 9.0.3
 - 有完整 SQLite schema 和 repository 层；
 - 有六个明确工具接口；
 - 有分类、保存、召回、纠错、遗忘、导出、reflection 和路由闭环；
+- 有回答前 automatic activation 和 bounded data-only context injection；
+- 有 hybrid recall、派生 semantic index 和 time-aware rerank；
 - 有较完整的自动化测试和拟真测试；
 - 不依赖修改 Hermes 源码；
 - 个人数据库没有进入 Git 仓库；
@@ -202,42 +232,44 @@ Python 3.11.15, pytest 9.0.3
 
 当前主要局限有：
 
-1. **召回仍以规则和词面为主**  
-   已支持中文 n-gram 和标签打分，但还没有向量检索、embedding 或模型 rerank。
+1. **Embedding provider 仍是本地 deterministic fake 实现**
+   003 已经验证 hybrid recall 架构和派生索引，但还没有接入真实本地 embedding 模型或外部 embedding API。
 
-2. **AI 尚未参与边界判断**  
+2. **AI 尚未参与边界判断**
    分类和召回目前是确定性规则。好处是稳定可解释，缺点是复杂语义边界仍可能判断不够细。
 
-3. **自动注入机制还未完成**  
-   现在记忆主要通过 `life_memory_recall` 工具召回，还没有完整实现“回答前自动判断是否需要召回并注入上下文”的机制。
+3. **尚未实现全库后台自动 reindex 调度**
+   当前 semantic index 可写入、检测和重建，但还没有独立后台 scheduler 做周期性全库维护。
 
-4. **运行时路由依赖 Hermes 内部模块名**  
+4. **运行时路由依赖 Hermes 内部模块名**
    插件不改 Hermes 源码，但 patch 了 Hermes 内部对象。如果 Hermes 后续升级内部结构，需要重新跑 routing 测试和一次黑盒验证。
 
-5. **Markdown 仍是只读审查视图**  
+5. **Markdown 仍是只读审查视图**
    用户不能直接编辑 Markdown 并自动同步回 SQLite。这样更安全，但交互便利性还可以继续提升。
 
 ## 9. 下一步工作建议
 
-下一阶段最值得做的是 **Memory Activation And Context Injection**，即“记忆激活和上下文注入机制”。
+下一阶段最值得做的是 **Review Sync And Change Requests**，即“审查修改同步机制”。
 
-目标是让系统不只是能被动召回记忆，而是在回答前自动判断：
+目标是让系统不只是能导出 Markdown 审查视图，而是能安全处理用户在 `change-requests.md` 或等价入口中表达的修改意图：
 
-- 当前问题是否需要生活记忆；
-- 应该召回哪些记忆；
-- 召回结果是否足够相关；
-- 哪些记忆可以安全注入回答上下文；
-- 哪些敏感或低置信记忆应该保持静默。
+- 删除某条记忆；
+- 修正或替换某条记忆；
+- 合并重复记忆；
+- 确认低置信或敏感候选；
+- 拒绝错误候选；
+- 把人工审查意见写回 SQLite trace，而不是静默改库。
 
 建议实现顺序：
 
-1. 先做 recall gate：判断当前问题是否需要查生活记忆。
-2. 再做安全注入格式：只注入少量 top memory，标明 `memory_id/status/confidence`，并声明是 data only。
-3. 然后加入 hybrid recall：规则/FTS 先召候选，embedding 补语义相似，模型只做 rerank 或边界辅助。
-4. 最后考虑 Markdown change request 同步和更完整的用户审查交互。
+1. 先定义 `change-requests.md` 的受限语法和 schema，不解析任意自然语言自由修改。
+2. 实现 dry-run parser，输出将要执行的 delete/replace/merge/confirm 操作和风险提示。
+3. 复用现有 `life_memory_feedback`、`life_memory_forget` 和 trace API apply 变更。
+4. 对敏感、restricted、ambiguous、多命中和 supersession 场景强制人工确认。
+5. 保持 Markdown reverse sync 默认关闭，只在用户显式运行同步工具时执行。
 
 ## 10. 总结
 
 本项目已经完成了 Hermes 个人生活记忆插件的主要工程闭环。它不是简单的聊天记录存储，而是一个具有分层分类、结构化数据库、生命周期管理、敏感信息保护、可解释召回、反馈遗忘、Markdown 审查和运行时路由能力的本地长期记忆系统。
 
-当前成果已经可以支撑导师层面的阶段性验收：项目目标清晰，架构边界明确，代码模块完整，测试覆盖较充分，真实 Hermes 场景下的写入路由也已经通过黑盒验证。后续重点应从“能不能记住”转向“什么时候该用记忆、如何安全地把记忆用于回答”。
+当前成果已经可以支撑导师层面的阶段性验收：项目目标清晰，架构边界明确，代码模块完整，测试覆盖较充分，真实 Hermes 场景下的写入路由、自动激活和 hybrid recall 都已经通过验证。后续重点应从“系统如何自动记住和使用记忆”转向“用户如何高信任地审查、修正和治理记忆库”。
