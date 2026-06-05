@@ -4,13 +4,13 @@
 
 **Created**: 2026-06-06
 
-**Status**: Draft
+**Status**: Implemented and validated 2026-06-06
 
 **Input**: User description: "Implement safe Markdown change request sync for life memory review"
 
 ## Summary
 
-This feature adds an explicit, safe review-sync path for `life_memory` Markdown exports. Today `life_memory_export_review` writes human-readable Markdown files, including a `change-requests.md` template, but the plugin intentionally does not read Markdown back into SQLite. This stage should let the user express bounded review actions in that file and run a new sync tool that parses, validates, previews, and optionally applies those actions to SQLite.
+This feature adds an explicit, safe review-sync path for `life_memory` Markdown exports. Before this stage, `life_memory_export_review` wrote human-readable Markdown files, including a `change-requests.md` template, but the plugin intentionally did not read Markdown back into SQLite. This stage lets the user express bounded review actions in that file and run a new sync tool that parses, validates, previews, and optionally applies those actions to SQLite.
 
 The core design constraint is that Markdown remains an audit and review surface, not an unrestricted database editor. Sync must be opt-in, dry-run by default, traceable, and conservative around ambiguous, sensitive, restricted, deleted, or multi-match changes. Applied changes should reuse existing `life_memory_feedback`, `life_memory_forget`, supersession, merge, and trace semantics where possible.
 

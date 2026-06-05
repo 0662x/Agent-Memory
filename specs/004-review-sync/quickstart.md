@@ -1,6 +1,6 @@
 # Quickstart: Review Sync And Change Requests
 
-This quickstart describes the intended validation workflow for `004-review-sync`. It is a draft until implementation tasks are complete.
+This quickstart validates the implemented `004-review-sync` feature.
 
 ## 1. Repository
 
@@ -38,7 +38,7 @@ AVAILABLE_DOCS includes research.md, data-model.md, contracts/, quickstart.md, t
 
 ## 3. Export Review Markdown
 
-After implementation, seed a temporary database and export review files:
+Seed a temporary database and export review files:
 
 ```bash
 uv run python - <<'PY'
@@ -126,7 +126,15 @@ Expected behavior:
 Targeted tests after implementation:
 
 ```bash
-uv run python -m pytest tests/unit/test_review_sync.py tests/integration/test_review_sync.py tests/integration/test_export_review.py tests/contract/test_tool_contracts.py
+uv run python -m pytest tests/unit/test_review_sync.py tests/integration/test_review_sync_flow.py tests/integration/test_export_review.py tests/contract/test_tool_contracts.py
+```
+
+Latest targeted validation:
+
+```text
+2026-06-06 Australia/Sydney
+uv run python -m pytest tests/unit/test_review_sync.py tests/integration/test_review_sync_flow.py tests/contract/test_tool_contracts.py tests/integration/test_export_review.py tests/integration/test_plugin_handlers.py
+55 passed in 0.45s
 ```
 
 Full suite:
@@ -135,15 +143,33 @@ Full suite:
 uv run python -m pytest
 ```
 
-Baseline validation before implementation:
+Latest full-suite validation:
 
 ```text
 2026-06-06 Australia/Sydney
 uv run python -m pytest
-137 passed in 0.74s
+161 passed in 0.95s
 Python 3.11.15, pytest 9.0.3
 ```
 
 ## 9. Current Status
 
-This stage is a draft specification. No `life_memory_sync_review` implementation exists yet. Markdown export remains read-only until this feature is implemented and validated.
+`life_memory_sync_review` is implemented as an explicit dry-run-first tool. It reads only structured `life-memory-change` blocks from `change-requests.md` or inline API text, applies confirmed exact-id changes through existing repository semantics, writes review-sync traces, and ignores arbitrary edits to other exported Markdown files.
+
+Latest local smoke result:
+
+```text
+2026-06-06 Australia/Sydney
+Temporary HERMES_HOME: mktemp profile
+Stored old memory: coconut water after weekend runs
+Exported review files: 8
+Wrote change-requests.md exact-id replace request
+Dry-run outcome: planned
+Apply outcome: applied
+Created replacement memory: soy milk after Saturday runs
+Re-exported review files: 8
+Recall outcome for "Saturday runs soy milk": success
+Cleanup: temporary HERMES_HOME removed
+```
+
+This smoke test validates export -> edit `change-requests.md` -> dry-run -> apply -> re-export -> recall without invoking external models or the real Hermes profile.

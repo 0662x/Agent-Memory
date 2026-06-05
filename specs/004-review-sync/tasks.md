@@ -18,10 +18,10 @@
 
 **Purpose**: Add review-sync fixtures and confirm Spec Kit resolves this feature.
 
-- [ ] T001 [P] Create `tests/fixtures/review_change_requests.md` with valid delete, replace, merge, confirm, reject, mark_outdated, malformed, ambiguous, and unsafe request examples.
-- [ ] T002 [P] Add an implementation-status note to `specs/004-review-sync/quickstart.md` documenting that sync is planned and Markdown export remains read-only until implementation is complete.
-- [ ] T003 Run `bash .specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks` and verify it resolves `specs/004-review-sync`.
-- [ ] T004 Run `uv run python -m pytest` to record the pre-feature baseline.
+- [x] T001 [P] Create `tests/fixtures/review_change_requests.md` with valid delete, replace, merge, confirm, reject, mark_outdated, malformed, ambiguous, and unsafe request examples.
+- [x] T002 [P] Add an implementation-status note to `specs/004-review-sync/quickstart.md` documenting the explicit review-sync workflow and Markdown boundaries.
+- [x] T003 Run `bash .specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks` and verify it resolves `specs/004-review-sync`.
+- [x] T004 Run `uv run python -m pytest` to record the pre-feature baseline.
 
 **Checkpoint**: The feature has fixture inputs, baseline tests pass, and Spec Kit points at `004-review-sync`.
 
@@ -35,17 +35,17 @@
 
 ### Tests For Foundation
 
-- [ ] T005 [P] Add unit tests in `tests/unit/test_review_sync.py` for fenced `life-memory-change` block parsing, line numbers, request ids, duplicate ids, and unsupported actions.
-- [ ] T006 [P] Add unit tests in `tests/unit/test_review_sync.py` for safe source loading from default review dir, inline text, missing file, path traversal rejection, and `max_actions` bounds.
-- [ ] T007 [P] Add unit tests in `tests/unit/test_review_sync.py` for stable dataclass/result shapes: `ReviewChangeRequest`, `ReviewSyncActionResult`, and `ReviewSyncPlan`.
+- [x] T005 [P] Add unit tests in `tests/unit/test_review_sync.py` for fenced `life-memory-change` block parsing, line numbers, request ids, duplicate ids, and unsupported actions.
+- [x] T006 [P] Add unit tests in `tests/unit/test_review_sync.py` for safe source loading from default review dir, inline text, missing file, path traversal rejection, and `max_actions` bounds.
+- [x] T007 [P] Add unit tests in `tests/unit/test_review_sync.py` for stable dataclass/result shapes: `ReviewChangeRequest`, `ReviewSyncActionResult`, and `ReviewSyncPlan`.
 
 ### Implementation For Foundation
 
-- [ ] T008 Create `plugins/life_memory/review_sync.py` with request/action dataclasses, outcome constants, parser errors, safe source loader, and result serialization helpers.
-- [ ] T009 Update `plugins/life_memory/models.py` only if trace operation enums or shared dataclasses are required for review sync.
-- [ ] T010 Implement fenced-block parser in `plugins/life_memory/review_sync.py` for `delete`, `replace`, `merge`, `confirm`, `reject`, and `mark_outdated` actions.
-- [ ] T011 Implement path/input bounds in `plugins/life_memory/review_sync.py`, including default `$HERMES_HOME/life_memory_review/change-requests.md` resolution.
-- [ ] T012 Run `uv run python -m pytest tests/unit/test_review_sync.py -k 'parse or source or shape'` and verify foundation tests pass.
+- [x] T008 Create `plugins/life_memory/review_sync.py` with request/action dataclasses, outcome constants, parser errors, safe source loader, and result serialization helpers.
+- [x] T009 Update `plugins/life_memory/models.py` only if trace operation enums or shared dataclasses are required for review sync.
+- [x] T010 Implement fenced-block parser in `plugins/life_memory/review_sync.py` for `delete`, `replace`, `merge`, `confirm`, `reject`, and `mark_outdated` actions.
+- [x] T011 Implement path/input bounds in `plugins/life_memory/review_sync.py`, including default `$HERMES_HOME/life_memory_review/change-requests.md` resolution.
+- [x] T012 Run `uv run python -m pytest tests/unit/test_review_sync.py -k 'parse or source or shape'` and verify foundation tests pass.
 
 **Checkpoint**: Review-sync input can be parsed and represented without mutating SQLite.
 
@@ -59,16 +59,16 @@
 
 ### Tests For User Story 1
 
-- [ ] T013 [P] [US1] Add unit tests in `tests/unit/test_review_sync.py` for dry-run planning of exact-id delete, replace, merge, confirm, reject, and mark_outdated requests.
-- [ ] T014 [P] [US1] Add unit tests in `tests/unit/test_review_sync.py` proving dry-run returns target ids, warnings, parse errors, and proposed operation descriptions.
-- [ ] T015 [US1] Add integration tests in `tests/integration/test_review_sync.py` proving dry-run does not mutate memory status, links, feedback, promotion score, or recall behavior.
+- [x] T013 [P] [US1] Add unit tests in `tests/unit/test_review_sync.py` for dry-run planning of exact-id delete, replace, merge, confirm, reject, and mark_outdated requests.
+- [x] T014 [P] [US1] Add unit tests in `tests/unit/test_review_sync.py` proving dry-run returns target ids, warnings, parse errors, and proposed operation descriptions.
+- [x] T015 [US1] Add integration tests in `tests/integration/test_review_sync_flow.py` proving dry-run does not mutate memory status, links, feedback, promotion score, or recall behavior.
 
 ### Implementation For User Story 1
 
-- [ ] T016 [US1] Implement `plan_review_sync()` in `plugins/life_memory/review_sync.py` for dry-run matching and proposed operation generation.
-- [ ] T017 [US1] Add repository read helpers in `plugins/life_memory/repository.py` only if existing memory lookup/search helpers are insufficient.
-- [ ] T018 [US1] Implement dry-run trace payload construction in `plugins/life_memory/review_sync.py` without raw restricted content.
-- [ ] T019 [US1] Run `uv run python -m pytest tests/unit/test_review_sync.py tests/integration/test_review_sync.py -k 'dry_run or planned or no_mutation'` and verify US1 tests pass.
+- [x] T016 [US1] Implement `plan_review_sync()` in `plugins/life_memory/review_sync.py` for dry-run matching and proposed operation generation.
+- [x] T017 [US1] Add repository read helpers in `plugins/life_memory/repository.py` only if existing memory lookup/search helpers are insufficient.
+- [x] T018 [US1] Implement dry-run trace payload construction in `plugins/life_memory/review_sync.py` without raw restricted content.
+- [x] T019 [US1] Run `uv run python -m pytest tests/unit/test_review_sync.py tests/integration/test_review_sync_flow.py -k 'dry_run or planned or no_mutation'` and verify US1 tests pass.
 
 **Checkpoint**: Users can preview review changes safely.
 
@@ -82,18 +82,18 @@
 
 ### Tests For User Story 2
 
-- [ ] T020 [P] [US2] Add integration tests in `tests/integration/test_review_sync.py` for exact-id delete applying soft-delete/tombstone semantics.
-- [ ] T021 [P] [US2] Add integration tests in `tests/integration/test_review_sync.py` for replace creating a new memory and superseding the old memory.
-- [ ] T022 [P] [US2] Add integration tests in `tests/integration/test_review_sync.py` for merge linking duplicate/source memories to a merged target.
-- [ ] T023 [P] [US2] Add integration tests in `tests/integration/test_review_sync.py` for confirm, reject, and mark_outdated actions mapping to feedback/review status changes.
-- [ ] T024 [P] [US2] Add tests proving destructive apply requires `apply=true`, `confirm_apply=true`, and per-action confirmation where required.
+- [x] T020 [P] [US2] Add integration tests in `tests/integration/test_review_sync_flow.py` for exact-id delete applying soft-delete/tombstone semantics.
+- [x] T021 [P] [US2] Add integration tests in `tests/integration/test_review_sync_flow.py` for replace creating a new memory and superseding the old memory.
+- [x] T022 [P] [US2] Add integration tests in `tests/integration/test_review_sync_flow.py` for merge linking duplicate/source memories to a merged target.
+- [x] T023 [P] [US2] Add integration tests in `tests/integration/test_review_sync_flow.py` for confirm, reject, and mark_outdated actions mapping to feedback/review status changes.
+- [x] T024 [P] [US2] Add tests proving destructive apply requires `apply=true`, `confirm_apply=true`, and per-action confirmation where required.
 
 ### Implementation For User Story 2
 
-- [ ] T025 [US2] Implement `apply_review_sync_plan()` in `plugins/life_memory/review_sync.py`, delegating to existing repository methods for delete, replacement, feedback, supersede, duplicate, and merge semantics.
-- [ ] T026 [US2] Add repository transaction wrapper or reuse existing transaction helper to avoid silent partial changes.
-- [ ] T027 [US2] Implement per-action applied result serialization with affected ids, created ids, and trace ids.
-- [ ] T028 [US2] Run `uv run python -m pytest tests/integration/test_review_sync.py -k 'apply or delete or replace or merge or confirm'` and verify US2 tests pass.
+- [x] T025 [US2] Implement apply handling in `plugins/life_memory/review_sync.py`, delegating to existing repository methods for delete, replacement, feedback, supersede, duplicate, and merge semantics.
+- [x] T026 [US2] Add repository transaction wrapper or reuse existing transaction helper to avoid silent partial changes.
+- [x] T027 [US2] Implement per-action applied result serialization with affected ids, created ids, and trace ids.
+- [x] T028 [US2] Run `uv run python -m pytest tests/integration/test_review_sync_flow.py -k 'apply or delete or replace or merge or confirm'` and verify US2 tests pass.
 
 **Checkpoint**: Exact confirmed review changes can update SQLite safely.
 
@@ -109,15 +109,15 @@
 
 - [ ] T029 [P] [US3] Add unit tests in `tests/unit/test_review_sync.py` for query-based ambiguous matches, zero matches, deleted ids, archived ids, superseded ids, and stale export ids.
 - [ ] T030 [P] [US3] Add unit tests in `tests/unit/test_review_sync.py` for replacement text classification, sensitive confirmation, restricted rejection, and prompt-injection rejection.
-- [ ] T031 [P] [US3] Add integration tests in `tests/integration/test_review_sync.py` proving ambiguous, unsafe, restricted, and malformed requests apply no changes.
-- [ ] T032 [P] [US3] Add tests proving sync results and traces do not expose deleted/restricted raw content.
+- [x] T031 [P] [US3] Add integration tests in `tests/integration/test_review_sync_flow.py` proving ambiguous, unsafe, restricted, and malformed requests apply no changes.
+- [x] T032 [P] [US3] Add tests proving sync results and traces do not expose deleted/restricted raw content.
 
 ### Implementation For User Story 3
 
-- [ ] T033 [US3] Implement validation gates in `plugins/life_memory/review_sync.py`, reusing `classification.py` and `safety.py` for replacement/merged content.
-- [ ] T034 [US3] Implement exact-id and query-based target resolution with `ambiguous`, `not_found`, `needs_confirmation`, and `declined` outcomes.
-- [ ] T035 [US3] Ensure restricted raw-content requests are rejected or redacted in all result and trace paths.
-- [ ] T036 [US3] Run `uv run python -m pytest tests/unit/test_review_sync.py tests/integration/test_review_sync.py -k 'ambiguous or unsafe or restricted or sensitive or malformed'` and verify US3 tests pass.
+- [x] T033 [US3] Implement validation gates in `plugins/life_memory/review_sync.py`, reusing `classification.py` and `safety.py` for replacement/merged content.
+- [x] T034 [US3] Implement exact-id and query-based target resolution with `ambiguous`, `not_found`, `needs_confirmation`, and `declined` outcomes.
+- [x] T035 [US3] Ensure restricted raw-content requests are rejected or redacted in all result and trace paths.
+- [x] T036 [US3] Run `uv run python -m pytest tests/unit/test_review_sync.py tests/integration/test_review_sync_flow.py -k 'ambiguous or unsafe or restricted or sensitive or malformed'` and verify US3 tests pass.
 
 **Checkpoint**: Review sync is no less strict than existing memory tools.
 
@@ -131,16 +131,16 @@
 
 ### Tests For User Story 4
 
-- [ ] T037 [P] [US4] Update `tests/integration/test_export_review.py` to assert `change-requests.md` documents supported `life-memory-change` actions and dry-run/apply workflow.
-- [ ] T038 [P] [US4] Add integration test in `tests/integration/test_review_sync.py` for export -> write template-based change request -> dry-run sync.
-- [ ] T039 [P] [US4] Add tests proving manual edits to `memory-library/*.md`, `memory-journal/*.md`, `archive.md`, and `review-needed.md` are ignored in MVP.
+- [x] T037 [P] [US4] Update `tests/integration/test_export_review.py` to assert `change-requests.md` documents supported `life-memory-change` actions and dry-run/apply workflow.
+- [x] T038 [P] [US4] Add integration test in `tests/integration/test_review_sync_flow.py` for export -> write template-based change request -> dry-run sync.
+- [x] T039 [P] [US4] Add tests proving manual edits to `memory-library/*.md`, `memory-journal/*.md`, `archive.md`, and `review-needed.md` are ignored in MVP.
 
 ### Implementation For User Story 4
 
-- [ ] T040 [US4] Update `plugins/life_memory/export_review.py` to generate a structured `change-requests.md` template with examples for each supported action.
-- [ ] T041 [US4] Ensure exported actionable memory entries include stable `memory_id` values suitable for exact-id sync requests.
-- [ ] T042 [US4] Ensure sync reads only `change-requests.md` or explicit inline text in MVP.
-- [ ] T043 [US4] Run `uv run python -m pytest tests/integration/test_export_review.py tests/integration/test_review_sync.py -k 'template or export or ignored'` and verify US4 tests pass.
+- [x] T040 [US4] Update `plugins/life_memory/export_review.py` to generate a structured `change-requests.md` template with examples for each supported action.
+- [x] T041 [US4] Ensure exported actionable memory entries include stable `memory_id` values suitable for exact-id sync requests.
+- [x] T042 [US4] Ensure sync reads only `change-requests.md` or explicit inline text in MVP.
+- [x] T043 [US4] Run `uv run python -m pytest tests/integration/test_export_review.py tests/integration/test_review_sync_flow.py -k 'template or export or ignored'` and verify US4 tests pass.
 
 **Checkpoint**: Exported Markdown and review sync form a safe round-trip workflow.
 
@@ -155,15 +155,15 @@
 ### Tests For User Story 5
 
 - [ ] T044 [P] [US5] Add unit tests in `tests/unit/test_review_sync.py` for trace payload construction, bounded source hashes, redactions, and action counts.
-- [ ] T045 [P] [US5] Add integration tests in `tests/integration/test_review_sync.py` for trace rows after dry-run, apply, invalid, ambiguous, declined, and failed outcomes.
+- [ ] T045 [P] [US5] Add integration tests in `tests/integration/test_review_sync_flow.py` for trace rows after dry-run, apply, invalid, ambiguous, declined, and failed outcomes.
 - [ ] T046 [P] [US5] Add tests proving traces connect sync apply runs to underlying forget/feedback/store/link traces where available.
 
 ### Implementation For User Story 5
 
-- [ ] T047 [US5] Implement `append_review_sync_trace()` or equivalent helper in `plugins/life_memory/review_sync.py` using existing repository trace APIs.
-- [ ] T048 [US5] Add `review_sync` trace operation support in `plugins/life_memory/models.py` or repository code if required.
-- [ ] T049 [US5] Ensure trace payloads include request ids, outcomes, affected ids, warnings, counts, source hash, and redaction metadata, not raw restricted content.
-- [ ] T050 [US5] Run `uv run python -m pytest tests/unit/test_review_sync.py tests/integration/test_review_sync.py -k 'trace or audit'` and verify US5 tests pass.
+- [x] T047 [US5] Implement `append_review_sync_trace()` or equivalent helper in `plugins/life_memory/review_sync.py` using existing repository trace APIs.
+- [x] T048 [US5] Add `review_sync` trace operation support in `plugins/life_memory/models.py` or repository code if required.
+- [x] T049 [US5] Ensure trace payloads include request ids, outcomes, affected ids, warnings, counts, source hash, and redaction metadata, not raw restricted content.
+- [x] T050 [US5] Run `uv run python -m pytest tests/unit/test_review_sync.py tests/integration/test_review_sync_flow.py -k 'trace or audit'` and verify US5 tests pass.
 
 **Checkpoint**: Review sync is auditable.
 
@@ -171,14 +171,14 @@
 
 ## Phase 8: Tool Contract And Handler Integration
 
-**Purpose**: Expose review sync as a plugin tool while preserving existing six tool behaviors.
+**Purpose**: Expose review sync as a plugin tool while preserving existing life-memory tool behaviors.
 
-- [ ] T051 [P] Add `life_memory_sync_review` schema tests to `tests/contract/test_tool_contracts.py`, covering default dry-run, inline text, apply confirmation, max_actions bounds, and result shape.
-- [ ] T052 [P] Add plugin registration smoke coverage in `tests/integration/test_plugin_handlers.py` for the seventh tool name if tool registration is expected in this stage.
-- [ ] T053 Update `plugins/life_memory/contracts.py` with `life_memory_sync_review` JSON schema and result envelope expectations.
-- [ ] T054 Update `plugins/life_memory/__init__.py` to register and implement the `life_memory_sync_review` handler, delegating to `review_sync.py`.
-- [ ] T055 Update `README.md` with review-sync behavior, dry-run/apply examples, safety boundaries, and audit guidance.
-- [ ] T056 Run `uv run python -m pytest tests/contract/test_tool_contracts.py tests/integration/test_plugin_handlers.py tests/integration/test_review_sync.py` and verify integration tests pass.
+- [x] T051 [P] Add `life_memory_sync_review` schema tests to `tests/contract/test_tool_contracts.py`, covering default dry-run, inline text, apply confirmation, max_actions bounds, and result shape.
+- [x] T052 [P] Add plugin registration smoke coverage in `tests/integration/test_plugin_handlers.py` for the seventh tool name if tool registration is expected in this stage.
+- [x] T053 Update `plugins/life_memory/contracts.py` with `life_memory_sync_review` JSON schema and result envelope expectations.
+- [x] T054 Update `plugins/life_memory/__init__.py` to register and implement the `life_memory_sync_review` handler, delegating to `review_sync.py`.
+- [x] T055 Update `README.md` with review-sync behavior, dry-run/apply examples, safety boundaries, and audit guidance.
+- [x] T056 Run `uv run python -m pytest tests/contract/test_tool_contracts.py tests/integration/test_plugin_handlers.py tests/integration/test_review_sync_flow.py` and verify integration tests pass.
 
 **Checkpoint**: Review sync is available as an explicit plugin tool.
 
@@ -188,13 +188,13 @@
 
 **Purpose**: Documentation, validation, manual smoke, and final boundary checks.
 
-- [ ] T057 [P] Update `specs/004-review-sync/quickstart.md` with final implemented commands, expected test results, and manual smoke-test observations or blocker.
-- [ ] T058 [P] Review `specs/004-review-sync/contracts/review-sync.md` against final schema and handler behavior.
-- [ ] T059 Add performance smoke coverage proving parsing and dry-run remain bounded with at least 100 change requests and existing 10,000-row memory scale if practical.
-- [ ] T060 Run `uv run python -m pytest` and record the result in `README.md` and `specs/004-review-sync/quickstart.md`.
-- [ ] T061 Run a manual local smoke test: export review, add exact-id replacement, dry-run sync, apply sync, re-export review, and clean up test memory.
-- [ ] T062 Review `git status --short` and ensure only intended `004-review-sync` files and implementation changes are staged.
-- [ ] T063 Optional: add `specs/004-review-sync/project-report.md` after implementation if a stage report is needed for review.
+- [x] T057 [P] Update `specs/004-review-sync/quickstart.md` with final implemented commands, expected test results, and manual smoke-test observations or blocker.
+- [x] T058 [P] Review `specs/004-review-sync/contracts/review-sync.md` against final schema and handler behavior.
+- [x] T059 Add performance smoke coverage proving parsing and dry-run remain bounded with at least 100 change requests and existing 10,000-row memory scale if practical.
+- [x] T060 Run `uv run python -m pytest` and record the result in `README.md` and `specs/004-review-sync/quickstart.md`.
+- [x] T061 Run a manual local smoke test: export review, add exact-id replacement, dry-run sync, apply sync, re-export review, and clean up test memory.
+- [x] T062 Review `git status --short` and ensure only intended `004-review-sync` files and implementation changes are staged.
+- [x] T063 Optional: add `specs/004-review-sync/project-report.md` after implementation if a stage report is needed for review.
 
 ---
 

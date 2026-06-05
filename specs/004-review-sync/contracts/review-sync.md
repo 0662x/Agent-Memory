@@ -190,11 +190,15 @@ def parse_review_change_requests(text: str, *, source_path: str | None = None) -
     ...
 
 
-def plan_review_sync(repo, requests, *, apply: bool = False, max_actions: int = 50) -> ReviewSyncPlan:
-    ...
-
-
-def apply_review_sync_plan(repo, plan, *, confirm_apply: bool = False) -> ReviewSyncPlan:
+def plan_review_sync(
+    repo,
+    requests,
+    *,
+    apply: bool = False,
+    confirm_apply: bool = False,
+    source_hash: str,
+    source_path: str | None = None,
+) -> ReviewSyncPlan:
     ...
 ```
 
@@ -202,4 +206,4 @@ Handler rules:
 
 - `life_memory_sync_review` reads input, parses requests, builds a plan, optionally applies it, writes trace, and returns the result envelope.
 - The handler must catch parsing/repository errors and return structured failure results.
-- Apply should run inside repository transactions when possible.
+- Apply delegates to existing repository helpers, which write their own traces and transaction-bounded mutations.

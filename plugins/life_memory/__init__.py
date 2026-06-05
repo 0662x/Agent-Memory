@@ -15,6 +15,8 @@ from .hybrid_recall import hybrid_rank_memories, index_memory_embedding
 from .models import FeedbackType, LifecycleStatus, MemoryClassification, TraceOperation
 from .reflection import normalize_reflection_mode, run_reflection
 from .repository import LifeMemoryRepository
+from .review_sync import result_message as review_sync_message
+from .review_sync import run_review_sync
 from .routing import install_memory_routing
 from .recall import rank_memories
 from .safety import evaluate_store_safety, safe_content_for_storage
@@ -850,6 +852,83 @@ def life_memory_export_review(args: dict[str, Any] | None = None, **kwargs: Any)
     )
 
 
+def life_memory_sync_review(args: dict[str, Any] | None = None, **kwargs: Any) -> str:
+    payload = _args(args, kwargs)
+    paths = get_runtime_paths()
+    review_raw = payload.get("review_dir")
+    review_dir = Path(str(review_raw)).expanduser() if review_raw else paths.review_dir
+    source_file = str(payload.get("source_file") or "change-requests.md")
+    change_requests_text = payload.get("change_requests_text")
+    inline_text = str(change_requests_text) if change_requests_text is not None else None
+    apply_changes = bool(payload.get("apply", False))
+    confirm_apply = bool(payload.get("confirm_apply", False))
+    try:
+        max_actions = max(1, min(int(payload.get("max_actions", 50) or 50), 200))
+    except (TypeError, ValueError):
+        max_actions = 50
+
+    repo = LifeMemoryRepository()
+    repo.initialize()
+    try:
+        plan = run_review_sync(
+            repo,
+            review_dir=review_dir,
+            source_file=source_file,
+            change_requests_text=inline_text,
+            apply=apply_changes,
+            confirm_apply=confirm_apply,
+            max_actions=max_actions,
+        )
+    except FileNotFoundError:
+        trace_id = repo.append_trace(
+            operation=TraceOperation.REVIEW_SYNC,
+            actor="plugin",
+            reason="Review sync source file not found.",
+            after={
+                "outcome": "not_found",
+                "review_dir": str(review_dir),
+                "source_file": source_file,
+            },
+        )
+        return result_json(
+            ok=False,
+            outcome="not_found",
+            apply=apply_changes,
+            review_dir=str(review_dir),
+            source_file=source_file,
+            message="change-requests.md was not found.",
+            trace_id=trace_id,
+            tool="life_memory_sync_review",
+        )
+    except ValueError as exc:
+        trace_id = repo.append_trace(
+            operation=TraceOperation.REVIEW_SYNC,
+            actor="plugin",
+            reason="Review sync input rejected.",
+            after={"outcome": "error", "error": str(exc)},
+        )
+        return result_json(
+            ok=False,
+            outcome="error",
+            apply=apply_changes,
+            message=str(exc),
+            trace_id=trace_id,
+            tool="life_memory_sync_review",
+        )
+
+    data = plan.to_dict()
+    ok = bool(data.pop("ok"))
+    outcome = str(data.pop("outcome"))
+    trace_id = str(data.pop("trace_id"))
+    return result_json(
+        ok=ok,
+        outcome=outcome,
+        message=review_sync_message(plan),
+        trace_id=trace_id,
+        **data,
+    )
+
+
 _HANDLERS: dict[str, Callable[..., str]] = {
     "life_memory_store": life_memory_store,
     "life_memory_recall": life_memory_recall,
@@ -857,6 +936,7 @@ _HANDLERS: dict[str, Callable[..., str]] = {
     "life_memory_forget": life_memory_forget,
     "life_memory_reflect": life_memory_reflect,
     "life_memory_export_review": life_memory_export_review,
+    "life_memory_sync_review": life_memory_sync_review,
 }
 
 

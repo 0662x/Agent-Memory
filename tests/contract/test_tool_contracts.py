@@ -246,3 +246,48 @@ def test_export_review_contract_default_archive_sensitive_and_read_only(
     memory = repo.fetch_one("SELECT * FROM life_memories WHERE memory_id = ?", (stored["memory_id"],))
     assert memory is not None
     assert memory["status"] == stored["status"]
+
+
+def test_sync_review_schema_and_default_missing_file_contract(registered_tools) -> None:
+    schema = TOOL_SCHEMAS["life_memory_sync_review"]["parameters"]
+    handler = registered_tools["life_memory_sync_review"]["handler"]
+
+    assert schema["properties"]["apply"]["default"] is False
+    assert schema["properties"]["confirm_apply"]["default"] is False
+    assert schema["properties"]["source_file"]["default"] == "change-requests.md"
+
+    result = json.loads(handler({}))
+
+    assert result["ok"] is False
+    assert result["outcome"] == "not_found"
+    assert result["tool"] == "life_memory_sync_review"
+    assert result["trace_id"].startswith("trace_")
+
+
+def test_sync_review_inline_dry_run_contract(registered_tools) -> None:
+    store = registered_tools["life_memory_store"]["handler"]
+    sync = registered_tools["life_memory_sync_review"]["handler"]
+    stored = json.loads(
+        store(
+            {
+                "content": "Remember that I prefer focused work late at night.",
+                "explicit_user_request": True,
+            }
+        )
+    )
+    text = f"""```life-memory-change
+id: req-delete
+action: delete
+memory_id: {stored['memory_id']}
+reason: wrong
+confirm: true
+```"""
+
+    result = json.loads(sync({"change_requests_text": text, "apply": False}))
+
+    assert result["ok"] is True
+    assert result["outcome"] == "planned"
+    assert result["apply"] is False
+    assert result["summary"]["planned"] == 1
+    assert result["actions"][0]["request_id"] == "req-delete"
+    assert result["trace_id"].startswith("trace_")

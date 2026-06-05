@@ -70,6 +70,7 @@ class TraceOperation(str, Enum):
     SESSION_EXTRACT = "session_extract"
     REFLECTION_REPORT = "reflection_report"
     EXPORT_REVIEW = "export_review"
+    REVIEW_SYNC = "review_sync"
     MODEL_CLASSIFY = "model_classify"
     MODEL_EXTRACT = "model_extract"
     MODEL_RERANK = "model_rerank"

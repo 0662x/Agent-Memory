@@ -20,10 +20,12 @@ Main implementation paths:
 - `plugins/life_memory/activation.py`: automatic life-memory activation gate, strict injection filters, data-only context formatting, and activation traces.
 - `plugins/life_memory/session_adapter.py`: read-only Hermes session/state adapter with transcript fallback.
 - `plugins/life_memory/export_review.py`: read-only Markdown review export.
+- `plugins/life_memory/review_sync.py`: explicit dry-run-first parser/planner/apply path for structured `change-requests.md` review edits.
 - `tests/`: contract, integration, unit, performance smoke, and realistic transcript coverage.
 - `specs/001-life-memory-plugin/`: base life-memory plugin spec, task list, quickstart, and design notes.
 - `specs/002-memory-activation/`: automatic activation and context-injection spec, plan, tasks, and validation notes.
 - `specs/003-hybrid-recall/`: hybrid lexical/vector recall spec, plan, tasks, and validation notes.
+- `specs/004-review-sync/`: explicit Markdown change request sync spec, plan, tasks, and validation notes.
 
 Registered tools:
 
@@ -33,6 +35,7 @@ Registered tools:
 - `life_memory_forget`
 - `life_memory_reflect`
 - `life_memory_export_review`
+- `life_memory_sync_review`
 
 Registered hooks:
 
@@ -92,7 +95,7 @@ Expected plugin metadata:
 - key: `life_memory`
 - source: `user`
 - kind: `standalone`
-- tools: all six `life_memory_*` tools above
+- tools: all seven `life_memory_*` tools above
 
 ## Test Command
 
@@ -111,7 +114,7 @@ Latest validation:
 ```text
 2026-06-06 Australia/Sydney
 uv run python -m pytest
-137 passed in 0.75s
+161 passed in 0.95s
 Python 3.11.15, pytest 9.0.3
 ```
 
@@ -142,8 +145,35 @@ By default this writes read-only Markdown files to:
 $HERMES_HOME/life_memory_review
 ```
 
-Important boundary: Markdown export is audit-only. The plugin does not read
-Markdown edits back into SQLite.
+Important boundary: Markdown export is audit-first. Normal runtime does not read
+Markdown edits back into SQLite. The only supported reverse path is the explicit
+`life_memory_sync_review` tool reading structured blocks from `change-requests.md`.
+
+## Review Sync
+
+`life_memory_sync_review` lets users turn review notes into bounded SQLite changes:
+
+- reads only `$HERMES_HOME/life_memory_review/change-requests.md` or explicit inline text;
+- parses fenced `life-memory-change` blocks;
+- defaults to dry-run with `apply=false`;
+- requires `apply=true`, `confirm_apply=true`, and per-action `confirm: true` for destructive changes;
+- supports `delete`, `replace`, `merge`, `confirm`, `reject`, and `mark_outdated`;
+- prefers exact `memory_id` targets and returns `ambiguous` for broad query matches;
+- reuses existing forget, feedback, supersession, merge, safety, and trace semantics;
+- ignores manual edits to `memory-library`, `memory-journal`, `review-needed.md`, and `archive.md`.
+
+Example block:
+
+````markdown
+```life-memory-change
+id: req-001
+action: replace
+memory_id: mem_example
+replacement: I now buy unsweetened soy milk after Saturday runs.
+reason: Corrected older running-drink memory.
+confirm: true
+```
+````
 
 
 ## Hybrid Recall
@@ -209,6 +239,7 @@ Allowed modified paths for this prototype:
 - `/Users/oliver/Projects/hermes-life-memory/specs/001-life-memory-plugin/`
 - `/Users/oliver/Projects/hermes-life-memory/specs/002-memory-activation/`
 - `/Users/oliver/Projects/hermes-life-memory/specs/003-hybrid-recall/`
+- `/Users/oliver/Projects/hermes-life-memory/specs/004-review-sync/`
 - `/Users/oliver/Projects/hermes-life-memory/README.md`
 - project metadata in `/Users/oliver/Projects/hermes-life-memory/`
 

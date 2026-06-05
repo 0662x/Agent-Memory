@@ -57,6 +57,7 @@ def test_export_review_writes_expected_markdown_files_and_redacts_sensitive(
     facts = (target / "memory-library" / "facts.md").read_text(encoding="utf-8")
     preferences = (target / "memory-library" / "preferences.md").read_text(encoding="utf-8")
     patterns = (target / "memory-library" / "patterns.md").read_text(encoding="utf-8")
+    change_requests = (target / "change-requests.md").read_text(encoding="utf-8")
 
     assert "Maya lives in Brisbane" in facts
     assert fact["memory_id"] in facts
@@ -66,6 +67,9 @@ def test_export_review_writes_expected_markdown_files_and_redacts_sensitive(
     assert "70 Example St" not in facts + preferences + patterns
     assert "Ashfield" not in facts + preferences + patterns
     assert "Sensitive" in facts + preferences + patterns
+    assert "life_memory_sync_review" in change_requests
+    assert "```life-memory-change" in change_requests
+    assert "Supported actions" in change_requests
 
 
 def test_export_review_archive_flag_and_sensitive_none(
