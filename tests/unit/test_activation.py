@@ -37,6 +37,8 @@ def _memory(memory_id: str, content: str, **overrides):
         "status": "active",
         "review_status": "pending",
         "sensitivity": "normal",
+        "source": "assistant_tool",
+        "authority": "assistant_tool",
         "importance": 0.8,
         "confidence": 0.9,
         "feedback_score": 0,
@@ -201,9 +203,73 @@ def test_is_memory_injectable_filter_reasons() -> None:
 
 def test_young_memory_requires_higher_confidence() -> None:
     policy = InjectionPolicy()
+    low_confidence_session_extract = _memory(
+        "young_low",
+        "x",
+        status="young",
+        confidence=0.7,
+        source="session_extract",
+        authority="session_extract",
+    )
 
-    assert is_memory_injectable(_memory("young_low", "x", status="young", confidence=0.7), policy=policy)[0] is False
+    assert is_memory_injectable(low_confidence_session_extract, policy=policy)[0] is False
     assert is_memory_injectable(_memory("young_high", "x", status="young", confidence=0.95), policy=policy)[0] is True
+
+
+def test_trusted_young_memory_allows_default_assistant_captured_confidence() -> None:
+    policy = InjectionPolicy()
+
+    assistant_captured = _memory(
+        "assistant_captured",
+        "User usually drinks jasmine tea after dinner.",
+        status="young",
+        confidence=0.7,
+        source="assistant_tool",
+        authority="assistant_tool",
+    )
+    routed = _memory(
+        "routed",
+        "User usually drinks jasmine tea after dinner.",
+        status="young",
+        confidence=0.7,
+        source="memory_router",
+        authority="memory_router",
+    )
+    approved = _memory(
+        "approved",
+        "User usually drinks jasmine tea after dinner.",
+        status="young",
+        confidence=0.7,
+        review_status="approved",
+    )
+    untrusted = _memory(
+        "untrusted",
+        "User usually drinks jasmine tea after dinner.",
+        status="young",
+        confidence=0.7,
+        source="session_extract",
+        authority="session_extract",
+    )
+
+    assert is_memory_injectable(assistant_captured, policy=policy)[0] is True
+    assert is_memory_injectable(routed, policy=policy)[0] is True
+    assert is_memory_injectable(approved, policy=policy)[0] is True
+    assert is_memory_injectable(untrusted, policy=policy)[1] == FILTER_LOW_CONFIDENCE
+
+
+def test_sensitive_young_memory_is_filtered_even_when_trusted() -> None:
+    memory = _memory(
+        "sensitive",
+        "The user's home address is 70 Example St.",
+        status="young",
+        confidence=0.95,
+        review_status="approved",
+        source="user_explicit",
+        authority="user_direct",
+        sensitivity="sensitive",
+    )
+
+    assert is_memory_injectable(memory, policy=InjectionPolicy())[1] == FILTER_SENSITIVE_UNAUTHORIZED
 
 
 def test_budget_exceeded_filter_count_for_small_block() -> None:

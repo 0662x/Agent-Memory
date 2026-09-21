@@ -13,6 +13,7 @@ TOOL_NAMES = (
     "life_memory_forget",
     "life_memory_reflect",
     "life_memory_export_review",
+    "life_memory_sync_review",
 )
 
 OUTCOMES = tuple(outcome.value for outcome in ToolOutcome)
@@ -60,10 +61,14 @@ TOOL_SCHEMAS: dict[str, dict[str, Any]] = {
             "properties": {
                 "query": {"type": "string"},
                 "limit": {"type": "integer", "minimum": 1, "maximum": 20, "default": 5},
+                "candidate_limit": {"type": "integer", "minimum": 1, "maximum": 200, "default": 30},
                 "categories": {"type": "array", "items": {"type": "string"}, "default": []},
                 "include_archived": {"type": "boolean", "default": False},
                 "include_sensitive": {"type": "boolean", "default": False},
                 "include_traces": {"type": "boolean", "default": False},
+                "recall_mode": {"type": "string", "enum": ["lexical", "hybrid", "auto"], "default": "hybrid"},
+                "semantic": {"type": "boolean", "default": True},
+                "historical_mode": {"type": "boolean", "default": False},
             },
         },
     ),
@@ -127,6 +132,24 @@ TOOL_SCHEMAS: dict[str, dict[str, Any]] = {
                 "target_dir": {"type": "string"},
                 "include_archive": {"type": "boolean", "default": True},
                 "include_sensitive": {"type": "string", "enum": ["none", "summary_only"], "default": "summary_only"},
+            },
+        },
+    ),
+    "life_memory_sync_review": _schema(
+        "life_memory_sync_review",
+        (
+            "Explicitly parse and optionally apply structured life-memory review change requests "
+            "from change-requests.md. Defaults to dry-run and ignores arbitrary exported Markdown edits."
+        ),
+        {
+            "type": "object",
+            "properties": {
+                "apply": {"type": "boolean", "default": False},
+                "confirm_apply": {"type": "boolean", "default": False},
+                "review_dir": {"type": "string"},
+                "source_file": {"type": "string", "default": "change-requests.md"},
+                "change_requests_text": {"type": "string"},
+                "max_actions": {"type": "integer", "minimum": 1, "maximum": 200, "default": 50},
             },
         },
     ),

@@ -53,6 +53,48 @@ def test_realistic_transcript_pack_extracts_signal_without_saving_noise(
             assert query["must_include"].lower() in recalled_text.lower(), case["case_id"]
 
 
+def test_realistic_chinese_family_schedule_extracts_and_recalls(
+    registered_tools,
+    hermes_home: Path,
+) -> None:
+    reflect = registered_tools["life_memory_reflect"]["handler"]
+    recall = registered_tools["life_memory_recall"]["handler"]
+    repo = LifeMemoryRepository(hermes_home=hermes_home)
+
+    result = json.loads(
+        reflect(
+            {
+                "mode": "session",
+                "apply": True,
+                "session_ref": "zh_family_schedule",
+                "transcript": [
+                    {
+                        "role": "user",
+                        "content": (
+                            "这次对话只是整理 migration draft，不要长期记这个。"
+                            "我周三晚上通常要接侄女 Ava 下芭蕾课，所以不安排晚会议。"
+                            "我希望以后做 agent 岗位。"
+                        ),
+                        "source_ref": "zh_family_1",
+                    }
+                ],
+            }
+        )
+    )
+    stored_rows = [repo.get_memory(memory_id) for memory_id in result["stored_memory_ids"]]
+    stored_text = "\n".join(row["content"] for row in stored_rows if row is not None)
+    recalled = json.loads(recall({"query": "周三 Ava 芭蕾", "limit": 5}))
+    recalled_text = "\n".join(item["content"] for item in recalled.get("results", []))
+
+    assert result["ok"] is True
+    assert result["stored_memory_ids"]
+    assert "侄女 Ava" in stored_text
+    assert "migration draft" not in stored_text
+    assert "agent 岗位" not in stored_text
+    assert recalled["outcome"] == "success"
+    assert "Ava" in recalled_text
+
+
 def test_realistic_boundary_cases_do_not_create_durable_memories(
     registered_tools,
     hermes_home: Path,
@@ -77,20 +119,23 @@ def test_realistic_daily_usage_store_and_recall_natural_language(registered_tool
     recall = registered_tools["life_memory_recall"]["handler"]
     scenarios = [
         {
-            "content": "这个可以长期记一下：我晚饭后通常会泡一杯茉莉茶，睡前就不喝咖啡了。",
+            "content": "我晚饭后通常会泡一杯茉莉茶，睡前就不喝咖啡了。",
+            "explicit_user_request": False,
             "query": "我晚饭后一般喝什么放松？",
             "must_include": "茉莉茶",
         },
         {
             "content": (
-                "Remember that on most Wednesdays I pick up my niece Ava after ballet, "
+                "I usually pick up my niece Ava after ballet on Wednesdays, "
                 "so I avoid late meetings then."
             ),
+            "explicit_user_request": False,
             "query": "Wednesday ballet pickup",
             "must_include": "Ava",
         },
         {
-            "content": "以后可以记一下，我周六下午一般去河边慢跑，跑完会买无糖豆浆。",
+            "content": "我周六下午一般去河边慢跑，跑完会买无糖豆浆。",
+            "explicit_user_request": False,
             "query": "周末运动后的饮品是什么？",
             "must_include": "无糖豆浆",
         },
@@ -101,7 +146,7 @@ def test_realistic_daily_usage_store_and_recall_natural_language(registered_tool
             store(
                 {
                     "content": scenario["content"],
-                    "explicit_user_request": True,
+                    "explicit_user_request": scenario["explicit_user_request"],
                     "source": "realistic_daily_test",
                 }
             )

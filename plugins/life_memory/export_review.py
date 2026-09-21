@@ -111,13 +111,21 @@ def _render_category(memories: list[dict[str, Any]], primary_category: str, sens
 
 
 def _render_review_needed(memories: list[dict[str, Any]], sensitive_mode: str) -> str:
-    rows = [
-        item
-        for item in memories
-        if item.get("review_status") == ReviewStatus.NEEDS_REVIEW.value
-        or item.get("status") in {LifecycleStatus.YOUNG.value, LifecycleStatus.PATTERN_CANDIDATE.value}
-    ]
+    rows = [item for item in memories if _is_review_needed(item)]
     return _render_memory_list("# Review Needed", rows, sensitive_mode)
+
+
+def _is_review_needed(memory: dict[str, Any]) -> bool:
+    review_status = memory.get("review_status")
+    if review_status == ReviewStatus.NEEDS_REVIEW.value:
+        return True
+    if review_status in {
+        ReviewStatus.APPROVED.value,
+        ReviewStatus.REJECTED.value,
+        ReviewStatus.AUTO_PROMOTED.value,
+    }:
+        return False
+    return memory.get("status") in {LifecycleStatus.YOUNG.value, LifecycleStatus.PATTERN_CANDIDATE.value}
 
 
 def _render_archive(memories: list[dict[str, Any]], sensitive_mode: str) -> str:
@@ -188,14 +196,49 @@ def _render_change_requests() -> str:
         [
             "# Change Requests",
             "",
-            "This file is a template for human review. The MVP does not read Markdown edits back into SQLite.",
+            "This file is the only Markdown review file that `life_memory_sync_review` reads.",
+            "SQLite remains the source of truth. Sync is explicit and dry-run by default.",
+            "Manual edits to memory-library, memory-journal, review-needed, or archive files are ignored.",
             "",
-            "## Request Template",
+            "## Workflow",
             "",
-            "- memory_id:",
-            "- action: correct | forget | mark_outdated | mark_important | merge",
-            "- replacement_content:",
-            "- note:",
+            "1. Copy an exact `memory_id` from the exported review files.",
+            "2. Add one or more fenced `life-memory-change` blocks below.",
+            "3. Run `life_memory_sync_review` with `apply=false` to preview.",
+            "4. Run again with `apply=true` and `confirm_apply=true` only after reviewing the plan.",
+            "",
+            "Supported actions: `delete`, `replace`, `merge`, `confirm`, `reject`, `mark_outdated`.",
+            "",
+            "## Examples",
+            "",
+            "Examples use `text` fences so the generated template is safe to dry-run as-is.",
+            "When ready, copy an example and change the fence language to `life-memory-change`.",
+            "",
+            "```text",
+            "id: req-delete-example",
+            "action: delete",
+            "memory_id: mem_example",
+            "reason: This memory is wrong.",
+            "confirm: true",
+            "```",
+            "",
+            "```text",
+            "id: req-replace-example",
+            "action: replace",
+            "memory_id: mem_example",
+            "replacement: I now buy unsweetened soy milk after Saturday runs.",
+            "reason: User corrected the older memory.",
+            "confirm: true",
+            "```",
+            "",
+            "```text",
+            "id: req-merge-example",
+            "action: merge",
+            "memory_ids: [mem_first, mem_second]",
+            "merged_content: User usually buys unsweetened soy milk after Saturday runs.",
+            "reason: Duplicate running-drink memories.",
+            "confirm: true",
+            "```",
             "",
         ]
     )

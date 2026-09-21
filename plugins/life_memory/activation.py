@@ -11,8 +11,8 @@ from datetime import datetime, timezone
 from typing import Any
 
 from .classification import classify_candidate
-from .models import LifecycleStatus, MemoryClassification, Sensitivity, TraceOperation
-from .recall import rank_memories
+from .hybrid_recall import hybrid_rank_memories
+from .models import LifecycleStatus, MemoryClassification, ReviewStatus, Sensitivity, TraceOperation
 from .repository import LifeMemoryRepository
 from .safety import detect_prompt_injection
 from .time_utils import clamp
@@ -99,6 +99,7 @@ class InjectionPolicy:
     min_relevance_score: float = 0.20
     min_confidence: float = 0.60
     min_young_confidence: float = 0.80
+    min_trusted_young_confidence: float = 0.70
     high_injection_risk: float = 0.75
     allow_archived: bool = False
     allow_sensitive: bool = False
@@ -111,6 +112,7 @@ class InjectionPolicy:
         object.__setattr__(self, "min_relevance_score", clamp(self.min_relevance_score))
         object.__setattr__(self, "min_confidence", clamp(self.min_confidence))
         object.__setattr__(self, "min_young_confidence", clamp(self.min_young_confidence))
+        object.__setattr__(self, "min_trusted_young_confidence", clamp(self.min_trusted_young_confidence))
         object.__setattr__(self, "high_injection_risk", clamp(self.high_injection_risk))
 
 
@@ -316,17 +318,11 @@ def select_injectable_memories(
     policy: InjectionPolicy | None = None,
 ) -> tuple[list[InjectedMemoryEntry], dict[str, int], int]:
     policy = policy or InjectionPolicy()
-    candidates = repo.search_memories(
-        query=query,
-        limit=policy.candidate_limit,
-        include_archived=True,
-        include_sensitive=True,
-    )
-    raw_by_id = {str(item.get("memory_id")): item for item in candidates if item.get("memory_id")}
-    ranked = rank_memories(
+    ranked = hybrid_rank_memories(
         query,
-        candidates,
+        repo=repo,
         limit=policy.candidate_limit,
+        candidate_limit=policy.candidate_limit,
         include_archived=True,
         include_sensitive=True,
     )
@@ -334,16 +330,29 @@ def select_injectable_memories(
     filter_counts: Counter[str] = Counter()
     for item in ranked:
         memory_id = str(item.get("memory_id") or "")
-        merged = {**raw_by_id.get(memory_id, {}), **item}
+        item = _hydrate_ranked_memory(repo, item)
         superseded = _is_superseded(repo, memory_id)
-        allowed, reason = is_memory_injectable(merged, policy=policy, superseded=superseded)
+        allowed, reason = is_memory_injectable(item, policy=policy, superseded=superseded)
         if not allowed:
             filter_counts[reason or FILTER_MALFORMED_MEMORY] += 1
             continue
-        selected.append(InjectedMemoryEntry.from_ranked_memory(merged, content=_bounded_content(str(merged.get("content") or ""), policy.max_content_chars)))
+        selected.append(InjectedMemoryEntry.from_ranked_memory(item, content=_bounded_content(str(item.get("content") or ""), policy.max_content_chars)))
         if len(selected) >= policy.max_memories:
             break
-    return selected, dict(filter_counts), len(candidates)
+    return selected, dict(filter_counts), len(ranked)
+
+
+def _hydrate_ranked_memory(repo: Any, item: Mapping[str, Any]) -> dict[str, Any]:
+    memory_id = str(item.get("memory_id") or "")
+    if not memory_id or not hasattr(repo, "get_memory"):
+        return dict(item)
+    try:
+        full = repo.get_memory(memory_id)
+    except Exception:
+        full = None
+    if not full:
+        return dict(item)
+    return {**full, **dict(item)}
 
 
 def is_memory_injectable(
@@ -374,7 +383,7 @@ def is_memory_injectable(
     if injection_risk >= policy.high_injection_risk:
         return False, FILTER_HIGH_INJECTION_RISK
     confidence = clamp(memory.get("confidence", 0))
-    min_confidence = policy.min_young_confidence if status == LifecycleStatus.YOUNG.value else policy.min_confidence
+    min_confidence = _confidence_floor(memory, status=status, policy=policy)
     if confidence < min_confidence:
         return False, FILTER_LOW_CONFIDENCE
     if clamp(memory.get("relevance_score", 0), 0, 10) < policy.min_relevance_score:
@@ -382,6 +391,25 @@ def is_memory_injectable(
     if _only_generic_relevance(str(memory.get("relevance_reason") or "")):
         return False, FILTER_LOW_RELEVANCE
     return True, None
+
+
+def _confidence_floor(memory: Mapping[str, Any], *, status: str, policy: InjectionPolicy) -> float:
+    if status != LifecycleStatus.YOUNG.value:
+        return policy.min_confidence
+    if _trusted_young_memory(memory):
+        return max(policy.min_confidence, policy.min_trusted_young_confidence)
+    return policy.min_young_confidence
+
+
+def _trusted_young_memory(memory: Mapping[str, Any]) -> bool:
+    if str(memory.get("review_status") or "") == ReviewStatus.APPROVED.value:
+        return True
+    if str(memory.get("authority") or "") == "user_direct":
+        return True
+    source = str(memory.get("source") or "")
+    authority = str(memory.get("authority") or "")
+    trusted_sources = {"user_explicit", "assistant_tool", "memory_router"}
+    return source in trusted_sources or authority in trusted_sources
 
 
 def format_injected_memory_block(
@@ -605,7 +633,10 @@ def _render_entry(entry: InjectedMemoryEntry, *, policy: InjectionPolicy) -> str
 
 
 def _only_generic_relevance(reason: str) -> bool:
-    if "matched query terms:" not in reason.lower():
+    lowered = reason.lower()
+    if "semantic similarity" in lowered or "semantic recall" in lowered:
+        return False
+    if "matched query terms:" not in lowered:
         return False
     _, _, tail = reason.partition(":")
     tail = tail.split(".", 1)[0]

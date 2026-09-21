@@ -1,9 +1,10 @@
 # Memory Architecture Notes: 自动化优先的生活记忆系统
 
-**Date**: 2026-06-01  
-**Status**: Discussion Record  
-**Related Spec**: [spec.md](./spec.md)  
+**Date**: 2026-06-01
+**Status**: Discussion Record
+**Related Spec**: [spec.md](./spec.md)
 **Related Plan**: [plan.md](./plan.md)
+**Related Diagram**: [memory-architecture-diagram.md](./memory-architecture-diagram.md)
 
 ## 0. 整体设计总览
 
@@ -393,7 +394,7 @@ $HERMES_HOME/life_memory_review/
 └── archive.md                   # 已归档/过期摘要；deleted 只显示 tombstone，不导出原文
 ```
 
-如果用户不看这些 Markdown，系统照常运行。  
+如果用户不看这些 Markdown，系统照常运行。
 MVP 中这些 Markdown 只作为 export-only 视图，不读取用户修改。`change-requests.md` 在 MVP 中最多是说明/模板，不作为输入读取。后续如果要支持修改同步，可以通过 `life_memory_sync_review` 或类似能力把审核意见同步回 SQLite；这个同步能力不是 MVP 的必经路径。
 
 ## 4. 自动化流程

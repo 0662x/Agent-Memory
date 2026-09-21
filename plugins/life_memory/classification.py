@@ -64,6 +64,7 @@ _LIFE_MEMORY_RE = re.compile(
     r"remember|prefer|prefers|preference|favorite|favourite|like|likes|love|loves|enjoy|enjoys|"
     r"usually|often|tend|habit|routine|after midnight|morning|night|"
     r"sister|brother|mother|father|partner|wife|husband|family|friend|"
+    r"niece|nephew|daughter|son|child|children|"
     r"live|lives|home|birthday|pet|dog|cat|exercise|sleep|dinner|breakfast|lunch|work late|"
     r"relationship|lifestyle"
     r")\b",
@@ -73,8 +74,10 @@ _CHINESE_LIFE_MEMORY_RE = re.compile(
     r"(记一下|记住|长期记|我通常|我一般|我经常|我往往|我偏好|我喜欢|我更喜欢|"
     r"喜欢喝|喜欢吃|更喜欢喝|更喜欢吃|偏好喝|偏好吃|饭后.*喜欢|"
     r"通常会.*(喝|吃|买|去|泡|做)|一般会.*(喝|吃|买|去|泡|做)|经常会.*(喝|吃|买|去|泡|做)|"
-    r"周[一二三四五六日天].*(通常|一般|经常|习惯)|"
-    r"我住在|我搬到|我的(姐姐|妹妹|哥哥|弟弟|妈妈|爸爸|伴侣|妻子|丈夫|家人|朋友)|"
+    r"周[一二三四五六日天].*(通常|一般|经常|习惯|会|要)|每周.*(通常|一般|经常|习惯|会|要)|"
+    r"我.{0,24}(通常|一般|经常|习惯).{0,36}(接|送|照顾|陪|买|喝|吃|去|泡|做|安排|避开)|"
+    r"我住在|我搬到|我的(姐姐|妹妹|哥哥|弟弟|妈妈|爸爸|伴侣|妻子|丈夫|家人|朋友|侄女|侄子|外甥|外甥女|女儿|儿子|孩子)|"
+    r"(侄女|侄子|外甥|外甥女|女儿|儿子|孩子).{0,20}(接|送|照顾|陪|上课|放学)|"
     r"生日|宠物|睡眠|运动|慢跑|跑步|健身|羽毛球|游泳|散步|豆浆)"
 )
 
@@ -100,13 +103,13 @@ _STRONG_PATTERN_RE = re.compile(r"\b(tend|tends|pattern|over time|repeated|acros
 _CHINESE_PATTERN_RE = re.compile(r"(通常|通常会|一般|一般会|经常|经常会|往往|习惯|总是)")
 _CHINESE_STRONG_PATTERN_RE = re.compile(r"(通常|一般|经常|往往|习惯|反复|多次)")
 
-_FAMILY_RE = re.compile(r"\b(sister|brother|mother|father|parent|partner|wife|husband|family)\b", re.I)
+_FAMILY_RE = re.compile(r"\b(sister|brother|mother|father|parent|partner|wife|husband|family|niece|nephew|daughter|son|child|children)\b", re.I)
 _WORK_RE = re.compile(r"\b(work|focus|deep work|implementation|mvp|project)\b", re.I)
 _NIGHT_RE = re.compile(r"\b(night|midnight|late)\b", re.I)
 _MORNING_RE = re.compile(r"\b(morning|early)\b", re.I)
 _FOOD_RE = re.compile(r"\b(food|coffee|tea|restaurant|breakfast|lunch|dinner)\b", re.I)
 _HEALTH_RE = re.compile(r"\b(exercise|sleep|tired|health|medication|therapy)\b", re.I)
-_CHINESE_FAMILY_RE = re.compile(r"(姐姐|妹妹|哥哥|弟弟|妈妈|爸爸|父母|伴侣|妻子|丈夫|家人|朋友)")
+_CHINESE_FAMILY_RE = re.compile(r"(姐姐|妹妹|哥哥|弟弟|妈妈|爸爸|父母|伴侣|妻子|丈夫|家人|朋友|侄女|侄子|外甥|外甥女|女儿|儿子|孩子)")
 _CHINESE_WORK_RE = re.compile(r"(工作|专注|实现|计划|复盘|重构|会议|例会)")
 _CHINESE_NIGHT_RE = re.compile(r"(晚上|夜里|半夜|深夜)")
 _CHINESE_MORNING_RE = re.compile(r"(早上|上午|清晨)")

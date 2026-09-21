@@ -436,7 +436,11 @@ def _candidate_sentences(message: SessionMessage) -> tuple[str, ...]:
             or re.search(r"\bthe user (?:prefers|usually|often|tends|lives|moved)\b", lower)
             or re.search(r"(记一下|记住|长期记|保存)", sentence)
             or re.search(r"(我通常|我一般|我经常|我往往|我偏好|我喜欢|我更喜欢|我住在|我搬到)", sentence)
-            or re.search(r"我的(姐姐|妹妹|哥哥|弟弟|妈妈|爸爸|伴侣|妻子|丈夫|家人|朋友)", sentence)
+            or re.search(r"我.{0,24}(通常|一般|经常|往往|习惯).{0,36}(接|送|照顾|陪|买|喝|吃|去|泡|做|安排|避开)", sentence)
+            or re.search(r"我.{0,24}(每周|周[一二三四五六日天]).{0,36}(会|要|通常|一般|经常|习惯)", sentence)
+            or re.search(r"我的(姐姐|妹妹|哥哥|弟弟|妈妈|爸爸|伴侣|妻子|丈夫|家人|朋友|侄女|侄子|外甥|外甥女|女儿|儿子|孩子)", sentence)
+            or re.search(r"(侄女|侄子|外甥|外甥女|女儿|儿子|孩子).{0,24}(接|送|照顾|陪|上课|放学)", sentence)
+            or re.search(r"(我希望以后|我以后想|我未来想|职业目标|长期目标|职业规划|想成为|想做[^。！？\n]{0,20}岗位)", sentence)
             or re.search(r"(不要长期记|不要保存|别保存)", sentence)
         ):
             candidates.append(sentence)

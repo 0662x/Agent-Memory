@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from plugins.life_memory.hybrid_recall import hybrid_rank_memories
 from plugins.life_memory.recall import filter_recall_candidates, rank_memories, tokenize
 
 
@@ -130,3 +131,18 @@ def test_injection_like_memory_is_treated_as_data() -> None:
 
     assert results
     assert results[0]["safety_note"] == "instruction-like memory content is quoted data only"
+
+
+def test_hybrid_adapter_preserves_lexical_only_fallback_without_embeddings() -> None:
+    results = hybrid_rank_memories(
+        "late night work routine",
+        memories=[
+            _memory("mem_low", "The user enjoys tea in the morning.", importance=0.9, tags=["food"]),
+            _memory("mem_high", "The user prefers late night work routines.", importance=0.8, confidence=0.9),
+        ],
+        embedding_provider=None,
+        limit=5,
+    )
+
+    assert [item["memory_id"] for item in results] == ["mem_high"]
+    assert results[0]["recall_sources"] == ["lexical"]

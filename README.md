@@ -13,14 +13,19 @@ Main implementation paths:
 - `plugins/life_memory/safety.py`: sensitive content and prompt-injection gates.
 - `plugins/life_memory/repository.py`: SQLite schema, persistence, traces, review export, and reflection helpers.
 - `plugins/life_memory/recall.py`: bounded lexical recall and ranking.
+- `plugins/life_memory/embeddings.py`: deterministic local embedding provider seam and vector utilities for hybrid recall.
+- `plugins/life_memory/hybrid_recall.py`: lexical/vector candidate merge, explainable score components, and time-aware reranking.
 - `plugins/life_memory/reflection.py`: `light`, `session`, `rem`, `deep`, and `daily` memory maintenance.
 - `plugins/life_memory/routing.py`: runtime routing patches that split Hermes default memory writes across native and life-memory stores, and compose pre-LLM routing guidance with activation context.
 - `plugins/life_memory/activation.py`: automatic life-memory activation gate, strict injection filters, data-only context formatting, and activation traces.
 - `plugins/life_memory/session_adapter.py`: read-only Hermes session/state adapter with transcript fallback.
 - `plugins/life_memory/export_review.py`: read-only Markdown review export.
+- `plugins/life_memory/review_sync.py`: explicit dry-run-first parser/planner/apply path for structured `change-requests.md` review edits.
 - `tests/`: contract, integration, unit, performance smoke, and realistic transcript coverage.
 - `specs/001-life-memory-plugin/`: base life-memory plugin spec, task list, quickstart, and design notes.
 - `specs/002-memory-activation/`: automatic activation and context-injection spec, plan, tasks, and validation notes.
+- `specs/003-hybrid-recall/`: hybrid lexical/vector recall spec, plan, tasks, and validation notes.
+- `specs/004-review-sync/`: explicit Markdown change request sync spec, plan, tasks, and validation notes.
 
 Registered tools:
 
@@ -30,6 +35,7 @@ Registered tools:
 - `life_memory_forget`
 - `life_memory_reflect`
 - `life_memory_export_review`
+- `life_memory_sync_review`
 
 Registered hooks:
 
@@ -89,7 +95,7 @@ Expected plugin metadata:
 - key: `life_memory`
 - source: `user`
 - kind: `standalone`
-- tools: all six `life_memory_*` tools above
+- tools: all seven `life_memory_*` tools above
 
 ## Test Command
 
@@ -106,9 +112,9 @@ reproducible form of `python -m pytest`.
 Latest validation:
 
 ```text
-2026-06-03 Australia/Sydney
+2026-06-06 Australia/Sydney
 uv run python -m pytest
-112 passed in 0.60s
+161 passed in 0.95s
 Python 3.11.15, pytest 9.0.3
 ```
 
@@ -139,8 +145,47 @@ By default this writes read-only Markdown files to:
 $HERMES_HOME/life_memory_review
 ```
 
-Important boundary: Markdown export is audit-only. The plugin does not read
-Markdown edits back into SQLite.
+Important boundary: Markdown export is audit-first. Normal runtime does not read
+Markdown edits back into SQLite. The only supported reverse path is the explicit
+`life_memory_sync_review` tool reading structured blocks from `change-requests.md`.
+
+## Review Sync
+
+`life_memory_sync_review` lets users turn review notes into bounded SQLite changes:
+
+- reads only `$HERMES_HOME/life_memory_review/change-requests.md` or explicit inline text;
+- parses fenced `life-memory-change` blocks;
+- defaults to dry-run with `apply=false`;
+- requires `apply=true`, `confirm_apply=true`, and per-action `confirm: true` for destructive changes;
+- supports `delete`, `replace`, `merge`, `confirm`, `reject`, and `mark_outdated`;
+- prefers exact `memory_id` targets and returns `ambiguous` for broad query matches;
+- reuses existing forget, feedback, supersession, merge, safety, and trace semantics;
+- ignores manual edits to `memory-library`, `memory-journal`, `review-needed.md`, and `archive.md`.
+
+Example block:
+
+````markdown
+```life-memory-change
+id: req-001
+action: replace
+memory_id: mem_example
+replacement: I now buy unsweetened soy milk after Saturday runs.
+reason: Corrected older running-drink memory.
+confirm: true
+```
+````
+
+
+## Hybrid Recall
+
+Life-memory recall can now use a derived semantic index in addition to lexical search:
+
+- SQLite `life_memories` remains the source of truth; embeddings are only a derived index.
+- `FakeEmbeddingProvider` provides deterministic local embeddings for tests and offline prototype behavior.
+- Hybrid recall merges lexical and vector candidates by `memory_id` and returns additive `score_components` plus `recall_sources`.
+- Reranking uses semantic score, lexical score, importance, confidence, feedback, evidence, lifecycle, expiry, and supersession state.
+- If embeddings are missing, stale, incompatible, or unavailable, recall falls back to lexical behavior.
+- Automatic activation can use hybrid recall when a fresh semantic index is available, while keeping the same data-only injection and safety filters.
 
 ## Automatic Memory Activation
 
@@ -193,6 +238,8 @@ Allowed modified paths for this prototype:
 - `/Users/oliver/Projects/hermes-life-memory/tests/`
 - `/Users/oliver/Projects/hermes-life-memory/specs/001-life-memory-plugin/`
 - `/Users/oliver/Projects/hermes-life-memory/specs/002-memory-activation/`
+- `/Users/oliver/Projects/hermes-life-memory/specs/003-hybrid-recall/`
+- `/Users/oliver/Projects/hermes-life-memory/specs/004-review-sync/`
 - `/Users/oliver/Projects/hermes-life-memory/README.md`
 - project metadata in `/Users/oliver/Projects/hermes-life-memory/`
 
