@@ -112,9 +112,9 @@ reproducible form of `python -m pytest`.
 Latest validation:
 
 ```text
-2026-06-06 Australia/Sydney
+2026-09-22 Asia/Shanghai
 uv run python -m pytest
-161 passed in 0.95s
+169 passed in 1.22s
 Python 3.11.15, pytest 9.0.3
 ```
 
